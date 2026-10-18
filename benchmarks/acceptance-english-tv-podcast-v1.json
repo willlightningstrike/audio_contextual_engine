@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "protocol_id": "english-phase1-tv-podcast-supplement-v1",
+  "protocol_sha256": "af82328445856c110613b29d4edc257f3fd7aaccabea577d7b457497ca8afacb",
+  "frozen_at_utc": "2026-09-27T19:58:56Z",
+  "frozen_before_inference": true,
+  "scope": {
+    "language": "English",
+    "audio_only": true,
+    "video_frames_used": false,
+    "classification_policy": "one primary IAB Content Taxonomy 3.0 category and zero to two optional secondary categories",
+    "instrumental_without_vocals": "out_of_scope_error",
+    "host_requirement": "Apple Silicon with at least 64 GiB physical memory",
+    "model_downloads_during_acceptance": false
+  },
+  "dataset_limitations": {
+    "all_cases_reuse_existing_project_or_development_audio": true,
+    "independent_holdout": false,
+    "semantic_ground_truth": "none",
+    "english_tv_or_podcast_input": "six newly supplied MP4s, with three TV shows and three podcasts identified by the user; English speech is subject to the pipeline's language check",
+    "supplement_only": "this set adds format coverage and does not replace or rescore the frozen eleven-case v1 release protocol"
+  },
+  "semantic_policy": {
+    "method": "qualitative_prediction_first",
+    "numeric_accuracy_threshold": null,
+    "review_status": "pending",
+    "review_fields": [
+      "primary_category",
+      "secondary_categories",
+      "keywords",
+      "entities",
+      "sentiment",
+      "transcript_coverage",
+      "errors"
+    ],
+    "review_rule": "Show each prediction before review. Keep later user feedback separate from blind ground truth and do not convert it into a numeric accuracy claim."
+  },
+  "resource_requirements": {
+    "physical_memory_bytes_minimum": 68719476736,
+    "record": [
+      "cold_and_warm_wall_seconds",
+      "process_peak_rss_bytes",
+      "mlx_peak_memory_bytes",
+      "host_memory_pressure_samples",
+      "swap_before_peak_after_bytes"
+    ],
+    "live_cancellation_stages": ["extraction", "asr", "classification", "batch"]
+  },
+  "required_strata": ["english_tv_program", "english_spoken_podcast"],
+  "cases": [
+    {
+      "case_id": "tv-5-01-60-180",
+      "display_name": "5-01--.mp4 — TV-program audio 01:00–03:00",
+      "stratum": "english_tv_program",
+      "source_path": "../../5-01--.mp4",
+      "source_sha256": "c78f6af1a13ad6cf3481d5e47b7756ec070a241a46948c0675ba2829cfc35e33",
+      "source_range": {"start_seconds": 60.0, "end_seconds": 180.0},
+      "input_path": "benchmarks/runs.local/english-acceptance-tv-podcast-inputs/numeric_5-01_60-180.wav",
+      "input_sha256": "ee70c0745e4b90c2455ec026412fa02b5d65bca0e7617dfa96b9e12561516678",
+      "analysis_duration_seconds": 120.0,
+      "context_override": 1,
+      "routing_reference": null,
+      "semantic_reference": null,
+      "selection_provenance": "user-identified TV show; common 01:00–03:00 audio-only range chosen before inference; not blind"
+    },
+    {
+      "case_id": "tv-2-02-60-180",
+      "display_name": "2-02--.mp4 — TV-program audio 01:00–03:00",
+      "stratum": "english_tv_program",
+      "source_path": "../../2-02--.mp4",
+      "source_sha256": "d8a3a79c42d7a17f2d437e37c0d423b494ffc4ecf89d3e311dfe9ca380dfeb99",
+      "source_range": {"start_seconds": 60.0, "end_seconds": 180.0},
+      "input_path": "benchmarks/runs.local/english-acceptance-tv-podcast-inputs/numeric_2-02_60-180.wav",
+      "input_sha256": "86d6348573c5d96408813b9ee97086eed49d1fd3fa8b20c8623023f90552f235",
+      "analysis_duration_seconds": 120.0,
+      "context_override": 1,
+      "routing_reference": null,
+      "semantic_reference": null,
+      "selection_provenance": "user-identified TV show; common 01:00–03:00 audio-only range chosen before inference; not blind"
+    },
+    {
+      "case_id": "tv-minus01-60-180",
+      "display_name": "-01--.mp4 — TV-program audio 01:00–03:00",
+      "stratum": "english_tv_program",
+      "source_path": "../../-01--.mp4",
+      "source_sha256": "71d98ec7255df510f84e92a055115f34b01c5f7b2108452de9f714327502203b",
+      "source_range": {"start_seconds": 60.0, "end_seconds": 180.0},
+      "input_path": "benchmarks/runs.local/english-acceptance-tv-podcast-inputs/numeric_minus01_60-180.wav",
+      "input_sha256": "f24d91e373fbef26f26b89af095a46d4172cbe30c3c7ffa2307e0df885e8975e",
+      "analysis_duration_seconds": 120.0,
+      "context_override": 1,
+      "routing_reference": null,
+      "semantic_reference": null,
+      "selection_provenance": "user-identified TV show; common 01:00–03:00 audio-only range chosen before inference; not blind"
+    },
+    {
+      "case_id": "podcast-nfl-herd-60-180",
+      "display_name": "NFL REACTION / Colin Cowherd — podcast audio 01:00–03:00",
+      "stratum": "english_spoken_podcast",
+      "source_path": "../../NFL REACTION Jaxson Dart out for season, Giants, Chiefs, Cowboys, Ravens Colin Cowherd HERD NFL.mp4",
+      "source_sha256": "c9149fc7224db6025c180e672b3af6f8ecb1f9fefa449346fb7404ee9e7b45c7",
+      "source_range": {"start_seconds": 60.0, "end_seconds": 180.0},
+      "input_path": "benchmarks/runs.local/english-acceptance-tv-podcast-inputs/nfl_herd_60-180.wav",
+      "input_sha256": "2910d956bd66f6621226cbf6718fda4754a30ff86db18d71c6c0b0fb55a98fbf",
+      "analysis_duration_seconds": 120.0,
+      "context_override": 6,
+      "routing_reference": null,
+      "semantic_reference": null,
+      "selection_provenance": "user-identified podcast; common 01:00–03:00 audio-only range chosen before inference; not blind"
+    },
+    {
+      "case_id": "podcast-mlb-meeting-60-180",
+      "display_name": "MLB MVP Calls Players Only Meeting — podcast audio 01:00–03:00",
+      "stratum": "english_spoken_podcast",
+      "source_path": "../../MLB MVP Calls Players Only Meeting Ahead of Playoff Run 1178.mp4",
+      "source_sha256": "db123c7b301022a8e4fe9c0d08c9008ce17bcca8da50021290d537e0add078f0",
+      "source_range": {"start_seconds": 60.0, "end_seconds": 180.0},
+      "input_path": "benchmarks/runs.local/english-acceptance-tv-podcast-inputs/mlb_meeting_60-180.wav",
+      "input_sha256": "2abce29a076b1781e76d410a81ab2e67646fa94e73598cbea0c2982311cb208c",
+      "analysis_duration_seconds": 120.0,
+      "context_override": 6,
+      "routing_reference": null,
+      "semantic_reference": null,
+      "selection_provenance": "user-identified podcast; common 01:00–03:00 audio-only range chosen before inference; not blind"
+    },
+    {
+      "case_id": "podcast-mlb-playoffs-60-180",
+      "display_name": "The MLB Playoffs Will Be Different This year — podcast audio 01:00–03:00",
+      "stratum": "english_spoken_podcast",
+      "source_path": "../../The MLB Playoffs Will Be Different This year.mp4",
+      "source_sha256": "48d8ff44f3ef54b4883fee003ae5841b13a54dda1bfede68a79223e0e8473cf7",
+      "source_range": {"start_seconds": 60.0, "end_seconds": 180.0},
+      "input_path": "benchmarks/runs.local/english-acceptance-tv-podcast-inputs/mlb_playoffs_60-180.wav",
+      "input_sha256": "3bb8be1ea937c17b97984369506dfe12907501b5709043aaee1dc7c86a43f5dc",
+      "analysis_duration_seconds": 120.0,
+      "context_override": 6,
+      "routing_reference": null,
+      "semantic_reference": null,
+      "selection_provenance": "user-identified podcast; common 01:00–03:00 audio-only range chosen before inference; not blind"
+    }
+  ]
+}

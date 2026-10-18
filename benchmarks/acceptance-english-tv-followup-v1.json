@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "protocol_id": "english-phase1-tv-followup-v1",
+  "protocol_sha256": "13def206ff7b1d0302eee82e428de255da50cc1a9f7bd9d941a35900739fee98",
+  "frozen_at_utc": "2026-09-27T20:23:33Z",
+  "frozen_before_inference": true,
+  "scope": {
+    "language": "English",
+    "audio_only": true,
+    "video_frames_used": false,
+    "classification_policy": "one primary IAB Content Taxonomy 3.0 category and zero to two optional secondary categories",
+    "instrumental_without_vocals": "out_of_scope_error",
+    "host_requirement": "Apple Silicon with at least 64 GiB physical memory",
+    "model_downloads_during_acceptance": false
+  },
+  "dataset_limitations": {
+    "all_cases_reuse_existing_project_or_development_audio": true,
+    "independent_holdout": false,
+    "semantic_ground_truth": "none",
+    "english_tv_or_podcast_input": "two newly supplied user-identified TV-show MP4s; English eligibility is determined from the selected audio",
+    "supplement_only": "this pair does not replace the eleven-case v1 protocol or the earlier six-case TV/podcast supplement"
+  },
+  "semantic_policy": {
+    "method": "qualitative_prediction_first",
+    "numeric_accuracy_threshold": null,
+    "review_status": "pending",
+    "review_fields": [
+      "primary_category",
+      "secondary_categories",
+      "keywords",
+      "entities",
+      "sentiment",
+      "transcript_coverage",
+      "errors"
+    ],
+    "review_rule": "Show each prediction before review. Keep later user feedback separate from blind ground truth and do not convert it into a numeric accuracy claim."
+  },
+  "resource_requirements": {
+    "physical_memory_bytes_minimum": 68719476736,
+    "record": [
+      "cold_and_warm_wall_seconds",
+      "process_peak_rss_bytes",
+      "mlx_peak_memory_bytes",
+      "host_memory_pressure_samples",
+      "swap_before_peak_after_bytes"
+    ],
+    "live_cancellation_stages": ["extraction", "asr", "classification", "batch"]
+  },
+  "required_strata": ["english_tv_program"],
+  "cases": [
+    {
+      "case_id": "tv-minus01-1-60-180",
+      "display_name": "-01--1.mp4 — TV-program audio 01:00–03:00",
+      "stratum": "english_tv_program",
+      "source_path": "../../-01--1.mp4",
+      "source_sha256": "664c9cf34d89c65c7de232edace0e4178077c425de31c9557b7ce3cd91872b37",
+      "source_range": {"start_seconds": 60.0, "end_seconds": 180.0},
+      "input_path": "benchmarks/runs.local/english-tv-followup-inputs/tv_minus01_1_60-180.wav",
+      "input_sha256": "6551165f8bbdf3dac78af5e76892b54e7fb59f22df7f9069d9e8c0ddca50d69c",
+      "analysis_duration_seconds": 120.0,
+      "context_override": 1,
+      "routing_reference": null,
+      "semantic_reference": null,
+      "selection_provenance": "newly user-supplied TV show; common 01:00–03:00 audio-only range chosen before inference; not blind"
+    },
+    {
+      "case_id": "tv-minus01-2-60-180",
+      "display_name": "-01--2.mp4 — TV-program audio 01:00–03:00",
+      "stratum": "english_tv_program",
+      "source_path": "../../-01--2.mp4",
+      "source_sha256": "fb354af8573609811596557d20b97dbafed7a40279178fd288c5e6df09c7f48c",
+      "source_range": {"start_seconds": 60.0, "end_seconds": 180.0},
+      "input_path": "benchmarks/runs.local/english-tv-followup-inputs/tv_minus01_2_60-180.wav",
+      "input_sha256": "4c235dfbac7679d6c2e24bd94a40379067d633c44ea205a627a53978272f7ea2",
+      "analysis_duration_seconds": 120.0,
+      "context_override": 1,
+      "routing_reference": null,
+      "semantic_reference": null,
+      "selection_provenance": "newly user-supplied TV show; common 01:00–03:00 audio-only range chosen before inference; not blind"
+    }
+  ]
+}

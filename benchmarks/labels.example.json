@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "samples": [
+    {
+      "id": "owner-local-example-001",
+      "audio_path": "/absolute/path/to/private/normalized-30s.wav",
+      "language": "en",
+      "content_types": ["speech"],
+      "taxonomy_ids": ["596"],
+      "is_music": false,
+      "vocal_presence": "unknown",
+      "genres": [],
+      "moods": []
+    }
+  ],
+  "notes": [
+    "labels.local.json is private and must contain at least 30 real samples.",
+    "Include at least five each of English speech, Chinese speech, Japanese speech, vocal music, speech-sparse music, and instrumental music.",
+    "One source item can have multiple content types but exactly one language stratum.",
+    "The harness generates predictions from the verified local MLX stack and writes them only to its result evidence; never add predictions to this manifest."
+  ]
+}

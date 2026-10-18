@@ -1,0 +1,21 @@
+{
+  "cat": ["80DV8O", "222"],
+  "cattax": 7,
+  "context": 1,
+  "data": [
+    {
+      "name": "contextual_engine",
+      "segment": [
+        {"id": "sentiment", "value": "negative:-0.6"},
+        {"id": "entity_product", "value": "Hario Switch"},
+        {"id": "primary_category", "value": "80DV8O"},
+        {"id": "secondary_category", "value": "222"}
+      ]
+    }
+  ],
+  "kwarray": ["coffee brewing"],
+  "language": "en",
+  "len": 60,
+  "title": "Hario Switch review",
+  "url": "https://example.test/review"
+}

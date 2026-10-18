@@ -1,0 +1,64 @@
+[project]
+name = "contextual-engine"
+version = "0.1.0"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "fastapi==0.141.1",
+  "mlx==0.32.0",
+  "mlx-audio==0.4.8",
+  "mlx-embeddings==0.1.0",
+  "mlx-lm==0.31.3",
+  "mlx-vlm==0.6.10",
+  "numpy==2.2.6",
+  "outlines==1.3.3",
+  "outlines-core==0.2.14",
+  "pydantic==2.11.7",
+  "python-multipart==0.0.20",
+  "transformers==5.14.0",
+  "uvicorn==0.35.0",
+]
+
+[dependency-groups]
+dev = [
+  "httpx==0.28.1",
+  "pytest==8.4.1",
+  "pytest-asyncio==1.1.0",
+]
+
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["engine"]
+force-include = { "data/standards" = "engine/data/standards" }
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/engine",
+  "/scripts",
+  "/data/standards",
+  "/README.md",
+  "/LICENSE",
+  "/pyproject.toml",
+  "/uv.lock",
+  "/run.sh",
+  "/docs/application-overview.md",
+  "/docs/setup-guide.md",
+  "/docs/verification",
+  "/THIRD_PARTY_NOTICES.md",
+]
+exclude = [
+  ".git",
+  ".pytest_cache",
+  ".uv-cache",
+  ".venv",
+  "dist",
+  "tests",
+]
+
+[tool.pytest.ini_options]
+markers = ["real_models: requires Apple Silicon and local model snapshots"]

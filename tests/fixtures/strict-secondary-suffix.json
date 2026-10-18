@@ -1,0 +1,3 @@
+{
+  "prompt_suffix": " Select a secondary category only when the transcript substantially discusses it as a distinct subject in its own right. A brief mention of a meetup, shopping venue, learning resource, or testing method in service of the primary subject does not establish a separate topic. Do not infer Workshops and Classes merely from attending a meetup or trying a product. Keep secondary_categories empty when no distinct secondary subject has sufficient support; retain genuinely substantial secondary topics."
+}

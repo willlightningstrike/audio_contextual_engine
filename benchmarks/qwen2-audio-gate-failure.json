@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "captured_on": "2026-08-23",
+  "gate_status": "failed",
+  "contains_private_media_labels_or_transcripts": false,
+  "model": {
+    "repository": "mlx-community/Qwen2-Audio-7B-Instruct-4bit",
+    "revision": "c65570002626f41b4dc08b7b54f42f99f3e82e7f"
+  },
+  "runtime": {
+    "mlx": "0.32.0",
+    "mlx_audio": "0.4.8",
+    "mlx_embeddings": "0.1.0",
+    "mlx_lm": "0.31.3",
+    "python": "3.13.2",
+    "transformers": "5.14.0"
+  },
+  "platform": {
+    "system": "Darwin",
+    "machine": "arm64",
+    "macos": "26.6.2",
+    "physical_memory_bytes": 68719476736
+  },
+  "snapshot": {
+    "manifest_sha256": "afd293c91f76541431135038f168ec3c45df090202ebc175d76e3895f0b12e00",
+    "file_count": 30,
+    "total_bytes": 6574662274,
+    "weights_sha256": "0967cde270ad62aa4824f0bbce283d0a2a6da2825ccf587640753c527d4174da"
+  },
+  "raw_gate_before_normalization": {
+    "model_smoke": {
+      "command": "uv run python scripts/model_smoke.py --manifest benchmarks/labels.local.json",
+      "exit_code": 2,
+      "status": "failed",
+      "reason": "text/audio model isolation response was not JSON"
+    },
+    "accuracy": {
+      "command": "uv run python scripts/accuracy_harness.py --manifest benchmarks/labels.local.json",
+      "exit_code": 2,
+      "status": "failed",
+      "reason": "text/audio model acoustic response is not JSON"
+    },
+    "controls": [
+      {
+        "name": "audio isolation",
+        "raw_syntax": "Python literal mapping with single-quoted strings",
+        "raw_utf8_bytes": 26,
+        "raw_sha256": "537515b3e3ba613b2f6de21332445891ca841d7b0722d09902532b24020efa7d",
+        "semantic_assessment": "exact requested mapping"
+      },
+      {
+        "name": "initial acoustic schema",
+        "raw_syntax": "backslash-escaped JSON object without a containing JSON string",
+        "raw_utf8_bytes": 134,
+        "raw_sha256": "97decb2d8fcd329dbcf3e1df407360f3a26eac5a7710e3e347515ccd0ca1e1bd",
+        "semantic_assessment": "four requested fields present"
+      }
+    ],
+    "raw_values_omitted": "Generated raw benchmark outputs remain ignored; only non-reversible hashes and syntax assessments are committed."
+  },
+  "normalization": {
+    "location": "engine/models/response.py",
+    "primary": "RFC 8259 JSON container",
+    "fallback": "ast.literal_eval top-level dict/list only",
+    "canonicalizer": "json.dumps allow_nan=False",
+    "rejects": [
+      "prose",
+      "scalar literals",
+      "tuple and set containers",
+      "executable expressions",
+      "non-string object keys",
+      "nested tuple values",
+      "non-JSON nested values",
+      "non-finite numbers",
+      "responses over 16384 UTF-8 bytes"
+    ],
+    "schema_validation_unchanged": true
+  },
+  "normalized_gate": {
+    "acceptance_sha256": "2ca23458105f86c6a8f5cc6eea3e8168ecc2a35d6ebfd2b45893a0b77a7a5216",
+    "model_smoke": {
+      "command": "uv run python scripts/model_smoke.py --manifest benchmarks/labels.local.json",
+      "exit_code": 0,
+      "status": "passed",
+      "artifact_sha256": "ff6ab65a04c522a25399c18176d47d83c6ed1142ebb49f8c60f612c6f36f186e",
+      "peak_rss_bytes": 9000845312,
+      "peak_rss_limit_bytes": 14495514624,
+      "swap_delta_bytes": 0,
+      "resident_model_count_stable": true,
+      "cancellation_between_windows_seconds": 0.0003246669948566705,
+      "mlx_parameter_and_tensor_checks": true,
+      "network_blocked": true,
+      "latencies_seconds": {
+        "language_cold": 0.47365416699904017,
+        "language_warm": 0.445334083007765,
+        "asr_cold": 1.0670669170067413,
+        "asr_warm": 1.0003313749912195,
+        "embeddings_cold": 0.026470666998648085,
+        "embeddings_warm": 0.014115291007328779,
+        "text_cold": 0.3976474170049187,
+        "text_warm": 0.35065300000132993,
+        "audio_cold": 3.111322791999555,
+        "audio_warm": 3.075231625000015
+      },
+      "throughput_calls_per_second": {
+        "language_cold": 2.111245017299777,
+        "language_warm": 2.2455052019509667,
+        "asr_cold": 0.9371483494260392,
+        "asr_warm": 0.9996687347817893,
+        "embeddings_cold": 37.7776653701651,
+        "embeddings_warm": 70.84515646760606,
+        "text_cold": 2.5147906342055544,
+        "text_warm": 2.8518221717658405,
+        "audio_cold": 0.3214067028247267,
+        "audio_warm": 0.3251787578764885
+      }
+    },
+    "accuracy": {
+      "command": "uv run python scripts/accuracy_harness.py --manifest benchmarks/labels.local.json",
+      "exit_code": 2,
+      "status": "failed",
+      "artifact_sha256": "c16dd8010df93492d0ad5a63dd73a94e15bb9368c2f1f0d84cd4f9420226ef74",
+      "reason": "text/audio model acoustic response has invalid scalar values",
+      "failing_stratum": "English speech",
+      "invalid_value_type": "quoted boolean-like string",
+      "raw_utf8_bytes": 77,
+      "raw_sha256": "a99ac907bd912e05b6ff950e431075e5e5d3251ac444a710abc98242beca6c07",
+      "metrics_available": false,
+      "assessment": "Superseded for candidate classification because the prompt incorrectly requested Python booleans; retained as raw historical evidence."
+    }
+  },
+  "fix_round_1": {
+    "reviewed_head": "3b5e4628782200c6e4c1dbbee2dfbf427e83a533",
+    "prompt_contract": "RFC 8259 JSON with lowercase true/false",
+    "decoder_rejects_non_json_literal_contents": true,
+    "acoustic_label_arrays_required": true,
+    "model_smoke": {
+      "command": "uv run python scripts/model_smoke.py --manifest benchmarks/labels.local.json",
+      "exit_code": 0,
+      "status": "passed",
+      "artifact_sha256": "d56ab11017f395ca14e57de4e749f1ebee6746adfe4c315cf3b106d25345706f",
+      "peak_rss_bytes": 9005449216,
+      "peak_rss_limit_bytes": 14495514624,
+      "swap_delta_bytes": 0,
+      "resident_model_count_stable": true,
+      "cancellation_between_windows_seconds": 0.00036700000055134296,
+      "mlx_parameter_and_tensor_checks": true,
+      "network_blocked": true,
+      "latencies_seconds": {
+        "language_cold": 0.4779146250075428,
+        "language_warm": 0.41264525000588037,
+        "asr_cold": 1.046030208002776,
+        "asr_warm": 0.9915595830098027,
+        "embeddings_cold": 0.026551415998255834,
+        "embeddings_warm": 0.01407637499505654,
+        "text_cold": 0.4035980409971671,
+        "text_warm": 0.3419075419951696,
+        "audio_cold": 3.0261184580012923,
+        "audio_warm": 3.0388796670013107
+      },
+      "throughput_calls_per_second": {
+        "language_cold": 2.092423934472014,
+        "language_warm": 2.423389097501424,
+        "asr_cold": 0.9559953358415307,
+        "asr_warm": 1.0085122640482955,
+        "embeddings_cold": 37.66277474864957,
+        "embeddings_warm": 71.04101733231663,
+        "text_cold": 2.477712720134385,
+        "text_warm": 2.924767304530907,
+        "audio_cold": 0.3304563300739012,
+        "audio_warm": 0.3290686402817571
+      }
+    },
+    "accuracy": {
+      "command": "uv run python scripts/accuracy_harness.py --manifest benchmarks/labels.local.json",
+      "exit_code": 2,
+      "status": "failed",
+      "artifact_sha256": "c16dd8010df93492d0ad5a63dd73a94e15bb9368c2f1f0d84cd4f9420226ef74",
+      "reason": "text/audio model acoustic response has invalid scalar values",
+      "sample_index": 0,
+      "failing_stratum": "English speech",
+      "invalid_value_type": "quoted boolean-like string",
+      "raw_utf8_bytes": 77,
+      "raw_sha256": "fdc31a24c1d5bd4bea64afcd707b89a48d31c6677d57b377b01ea320962cf97e",
+      "metrics_available": false,
+      "assessment": "Corrected strict-JSON prompt still produced a quoted boolean-like string; no coercion or threshold change was applied."
+    },
+    "thresholds_unchanged": true,
+    "task_7_started": false
+  },
+  "decision": "Stop at Task 6 because the candidate still fails the strict acoustic schema on the fixed corpus after the corrected strict-JSON prompt and bounded normalization. Task 7 was not started."
+}

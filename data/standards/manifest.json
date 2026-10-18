@@ -1,0 +1,16 @@
+{
+  "context_constants": {
+    "music": 3,
+    "other": 6,
+    "unknown": 7,
+    "video": 1
+  },
+  "iab_content_taxonomy_version": "3.0",
+  "iab_taxonomy_commit": "0c236b7d73811983bc0e7a314ebb2769acde2291",
+  "iab_taxonomy_tag": "Taxos-202308",
+  "openrtb_cattax_content_3_0": 7,
+  "repository": "https://github.com/InteractiveAdvertisingBureau/Taxonomies",
+  "sha256": "88a70b83feca05b7c9f7ed6f6a70ac501b863eff7c1aca83fb90356e86e9492e",
+  "source_url": "https://raw.githubusercontent.com/InteractiveAdvertisingBureau/Taxonomies/0c236b7d73811983bc0e7a314ebb2769acde2291/Content%20Taxonomies/Content%20Taxonomy%203.0.tsv",
+  "upstream_path": "Content Taxonomies/Content Taxonomy 3.0.tsv"
+}

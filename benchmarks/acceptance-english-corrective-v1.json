@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "protocol_id": "english-phase1-corrective-supplement-v1",
+  "protocol_sha256": "e3c42074cbce20bcfc4dea8c74798743853db6a9f0f95b46c23bbaa125a17092",
+  "frozen_at_utc": "2026-09-27T21:48:51Z",
+  "frozen_before_inference": true,
+  "scope": {
+    "language": "English for positive cases; one explicit non-English routing control",
+    "audio_only": true,
+    "video_frames_used": false,
+    "classification_policy": "one primary IAB Content Taxonomy 3.0 category and zero to two optional secondary categories",
+    "instrumental_without_vocals": "out_of_scope_error",
+    "host_requirement": "Apple Silicon with at least 64 GiB physical memory",
+    "model_downloads_during_acceptance": false
+  },
+  "dataset_limitations": {
+    "independent_holdout": false,
+    "semantic_ground_truth": "none",
+    "selection": "development and post-result derived; this corrective supplement cannot replace or rescore any historical frozen result",
+    "release_scope": "supplemental_format_coverage_only",
+    "numeric_accuracy_claim": "not_permitted"
+  },
+  "semantic_policy": {
+    "method": "qualitative_prediction_first",
+    "numeric_accuracy_threshold": null,
+    "review_status": "pending",
+    "review_fields": [
+      "primary_category",
+      "secondary_categories",
+      "keywords",
+      "entities",
+      "sentiment",
+      "transcript_coverage",
+      "errors"
+    ],
+    "review_rule": "Show every predicted field before review; later approval does not create blind ground truth or a numeric accuracy claim."
+  },
+  "resource_requirements": {
+    "physical_memory_bytes_minimum": 68719476736,
+    "record": [
+      "cold_and_warm_wall_seconds",
+      "process_peak_rss_bytes",
+      "mlx_peak_memory_bytes",
+      "host_memory_pressure_samples",
+      "swap_before_peak_after_bytes"
+    ],
+    "live_cancellation_stages": ["extraction", "asr", "classification", "batch"]
+  },
+  "required_strata": [
+    "sparse_english_tv_dialogue",
+    "english_tv_program",
+    "english_vocal_music",
+    "short_non_english_negative"
+  ],
+  "cases": [
+    {
+      "case_id": "tv-minus01-2-dialogue-600-720",
+      "display_name": "-01--2.mp4 — later TV dialogue audio 10:00–12:00",
+      "stratum": "sparse_english_tv_dialogue",
+      "source_path": "../../-01--2.mp4",
+      "source_sha256": "fb354af8573609811596557d20b97dbafed7a40279178fd288c5e6df09c7f48c",
+      "source_range": {"start_seconds": 600.0, "end_seconds": 720.0},
+      "input_path": "benchmarks/runs.local/english-tv-followup-inputs/tv_minus01_2_600-720_exact.wav",
+      "input_sha256": "b4a58a74dad8ab5c6b9651d4c6ddcfd2136ffe3a0895020db39388578c175e9f",
+      "analysis_duration_seconds": 120.0,
+      "context_override": 1,
+      "routing_reference": null,
+      "semantic_reference": null,
+      "selection_provenance": "post-result exploratory range with English sparse dialogue; not blind and not a replacement for its uncertain 01:00–03:00 frozen case"
+    },
+    {
+      "case_id": "tv-minus01-corrective-60-180",
+      "display_name": "-01--.mp4 — repeat of prior timestamp-failed TV audio 01:00–03:00",
+      "stratum": "english_tv_program",
+      "source_path": "../../-01--.mp4",
+      "source_sha256": "71d98ec7255df510f84e92a055115f34b01c5f7b2108452de9f714327502203b",
+      "source_range": {"start_seconds": 60.0, "end_seconds": 180.0},
+      "input_path": "benchmarks/runs.local/english-acceptance-tv-podcast-inputs/numeric_minus01_60-180.wav",
+      "input_sha256": "f24d91e373fbef26f26b89af095a46d4172cbe30c3c7ffa2307e0df885e8975e",
+      "analysis_duration_seconds": 120.0,
+      "context_override": 1,
+      "routing_reference": null,
+      "semantic_reference": null,
+      "selection_provenance": "same previously frozen failed TV range, repeated only in this new protocol after captured ASR-tail diagnosis and bounded adapter correction; not blind"
+    },
+    {
+      "case_id": "backstreet-vocal-90-120",
+      "display_name": "Backstreet Boys — Everybody — English vocal audio 01:30–02:00",
+      "stratum": "english_vocal_music",
+      "source_path": "../../Backstreet Boys - Everybody (Backstreets Back) (Official HD Video).mp4",
+      "source_sha256": "2150b4afd47f037fd914ddc0d676bd77f9c9314103dd17059b8ffcdc330b98fc",
+      "source_range": {"start_seconds": 90.0, "end_seconds": 120.0},
+      "input_path": "benchmarks/runs.local/task18-diagnostics-20260927/backstreet_90-120.wav",
+      "input_sha256": "ac23883a0e6fdd335eb255787ba300aa6cafe6fc449baeafe8856bcf99f20266",
+      "analysis_duration_seconds": 30.0,
+      "context_override": 1,
+      "routing_reference": null,
+      "semantic_reference": null,
+      "selection_provenance": "post-result second window of a historically failed 01:00–02:00 clip; prior leading-uncertain failure remains, and this narrower vocal excerpt is not blind"
+    },
+    {
+      "case_id": "non-english-b05-0-30",
+      "display_name": "B05 — first-window Chinese routing control 00:00–00:30",
+      "stratum": "short_non_english_negative",
+      "source_path": "benchmarks/runs.local/english-prelabel-v1/B05.wav",
+      "source_sha256": "480a05d20667681b1086619a79f98c892414ab7e7c4b653669ef122bf548e536",
+      "source_range": {"start_seconds": 0.0, "end_seconds": 30.0},
+      "input_path": "benchmarks/runs.local/english-acceptance-corrected-inputs/b05_0-30.wav",
+      "input_sha256": "ad83a20a684aaa038fb270e36064fade6344449089998d7edc878f2cecc4a68f",
+      "analysis_duration_seconds": 30.0,
+      "context_override": null,
+      "routing_reference": {"expected_outcome": "rejected_non_english", "provenance": "user_confirmed_prior", "blind": false},
+      "semantic_reference": null,
+      "selection_provenance": "post-result first-window negative control matching intentional early-stop behavior; does not repair or replace the old 90-second B05 coverage failure"
+    }
+  ]
+}

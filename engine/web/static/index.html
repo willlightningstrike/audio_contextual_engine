@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Contextual Engine · Audio review</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script type="module" src="/static/app.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="wordmark" href="/" aria-label="Contextual Engine home">
+          <span class="wordmark-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span>Contextual Engine</span>
+        </a>
+        <p class="local-note"><span class="local-dot" aria-hidden="true"></span>Runs on this Mac</p>
+      </header>
+
+      <main>
+        <section class="intro" aria-labelledby="page-title">
+          <div class="intro-copy">
+            <p class="eyebrow">Audio context workspace</p>
+            <h1 id="page-title">Find the subjects<br>inside a recording.</h1>
+            <p class="intro-detail">Review one clear primary topic, up to two optional secondary topics, and the evidence across time.</p>
+          </div>
+          <div class="intro-mark" aria-hidden="true">
+            <span class="sound-line sound-line-one"></span>
+            <span class="sound-line sound-line-two"></span>
+            <span class="sound-line sound-line-three"></span>
+            <span class="sound-line sound-line-four"></span>
+            <span class="sound-line sound-line-five"></span>
+            <span class="sound-line sound-line-six"></span>
+            <span class="sound-line sound-line-seven"></span>
+          </div>
+        </section>
+
+        <div class="workspace">
+          <aside class="input-column" aria-label="Choose media">
+            <section class="source-panel panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Start with a source</p>
+                  <h2>Choose media</h2>
+                </div>
+                <span class="step-mark" aria-hidden="true">01</span>
+              </div>
+
+              <fieldset class="source-modes">
+                <legend class="visually-hidden">Source type</legend>
+                <label class="mode-option" for="source-mode-upload">
+                  <input id="source-mode-upload" name="source-mode" type="radio" value="upload" checked>
+                  <span>Upload a file</span>
+                </label>
+                <label class="mode-option" for="source-mode-path">
+                  <input id="source-mode-path" name="source-mode" type="radio" value="path">
+                  <span>Use a local file path</span>
+                </label>
+                <label class="mode-option" for="source-mode-batch">
+                  <input id="source-mode-batch" name="source-mode" type="radio" value="batch">
+                  <span>Analyze a folder</span>
+                </label>
+              </fieldset>
+
+              <form id="analysis-form">
+                <div class="source-fields" data-source-panel="upload">
+                  <label class="field-label" for="source-file">Audio or video file</label>
+                  <input id="source-file" type="file" accept="audio/*,video/*,.wav,.mp3,.m4a,.mp4,.mov,.mkv,.webm">
+                  <p class="field-help">Video is accepted, but only its selected audio track is analyzed.</p>
+                </div>
+                <div class="source-fields" data-source-panel="path" hidden>
+                  <label class="field-label" for="source-path">Full path to a media file</label>
+                  <input id="source-path" type="text" placeholder="/Users/you/Media/interview.mp4" autocomplete="off" spellcheck="false">
+                  <p class="field-help">The file must be inside a folder allowed by the local service.</p>
+                </div>
+                <div class="source-fields" data-source-panel="batch" hidden>
+                  <label class="field-label" for="source-directory">Full path to a folder</label>
+                  <input id="source-directory" type="text" placeholder="/Users/you/Media/episodes" autocomplete="off" spellcheck="false">
+                  <p class="field-help">Only supported files directly inside this folder are included.</p>
+                </div>
+
+                <div id="track-options" class="track-options" hidden>
+                  <label class="field-label" for="audio-stream">Audio track</label>
+                  <select id="audio-stream" disabled>
+                    <option value="">Check the source first</option>
+                  </select>
+                  <label class="field-label context-label" for="content-context">Content context <span>optional</span></label>
+                  <select id="content-context">
+                    <option value="">Automatic</option>
+                    <option value="1">Video program</option>
+                    <option value="3">Music</option>
+                    <option value="6">Spoken audio</option>
+                    <option value="7">Unknown</option>
+                  </select>
+                </div>
+
+                <p id="scope-notice" class="scope-notice">
+                  <strong>Experimental transcript-only analysis.</strong> Topics rely on the English transcript and independent transcript verification. Transcription errors or limited evidence may produce wrong topics or no result. Acoustic style is not analyzed.
+                  <br>
+                  English speech or usable English lyrics only. Instrumental music, other no-vocal sounds, silence, and non-English content are out of scope. English detection is never forced.
+                </p>
+                <p id="form-error" class="inline-error" role="alert" hidden></p>
+                <button id="analyze-button" class="button button-primary" type="submit">Check audio track</button>
+              </form>
+            </section>
+
+            <section class="privacy-note" aria-label="Privacy">
+              <span class="privacy-icon" aria-hidden="true">◌</span>
+              <p><strong>Your media stays local.</strong><br>Files and transcripts are processed on this computer.</p>
+            </section>
+          </aside>
+
+          <section class="results-column" aria-label="Analysis results">
+            <section class="progress-panel panel" aria-labelledby="progress-title">
+              <div class="progress-topline">
+                <div>
+                  <p class="eyebrow">Current run</p>
+                  <h2 id="progress-title">Analysis progress</h2>
+                </div>
+                <span id="progress-percent" class="progress-percent">—</span>
+              </div>
+              <div id="progress-track" class="progress-track" role="progressbar" aria-label="Analysis progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progress-bar"></span></div>
+              <div class="progress-bottomline">
+              <p id="current-stage" class="stage-label" role="status" aria-live="polite">Waiting</p>
+              <p id="progress-status" role="status" aria-live="polite">Choose a file or local path to begin.</p>
+                <button id="cancel-button" class="button button-quiet" type="button" hidden>Cancel</button>
+              </div>
+              <p id="current-unit" class="current-unit" aria-live="polite"></p>
+              <p id="evidence-mode" class="scope-notice" aria-live="polite">Experimental transcript-only analysis. The saved server record will show its evidence mode and verification policy.</p>
+              <p id="job-status" class="job-status" role="status" aria-live="polite"></p>
+            </section>
+
+            <section id="job-results" class="job-results" aria-label="Results" hidden>
+              <section class="summary-panel panel" aria-labelledby="summary-title">
+                <div class="section-heading result-heading">
+                  <div>
+                    <p class="eyebrow">Whole-file view</p>
+                    <h2 id="summary-title">Saved topic result</h2>
+                  </div>
+                  <span id="context-label" class="context-chip"></span>
+                </div>
+                <p class="primary-heading">Primary category</p>
+                <div id="summary-content" class="summary-content">
+                  <p class="empty-result">A whole-file result will appear when analysis is complete.</p>
+                </div>
+                <p class="secondary-heading">Optional secondary categories (up to two)</p>
+                <div id="secondary-content" class="secondary-content"></div>
+                <p id="taxonomy-notice" class="taxonomy-notice" role="status" aria-live="polite" hidden></p>
+                <div class="result-actions">
+                  <button id="copy-button" class="button button-secondary" type="button" hidden>Copy JSON</button>
+                  <button id="download-button" class="button button-secondary" type="button" hidden>Download JSON</button>
+                  <span id="copy-status" class="copy-status" role="status" aria-live="polite"></span>
+                </div>
+              </section>
+
+              <section class="details-grid" aria-label="Context details">
+                <article class="detail-panel panel">
+                  <h3>Keywords</h3>
+                  <div id="keywords-content" class="detail-content"><p class="muted">No keywords yet.</p></div>
+                </article>
+                <article class="detail-panel panel">
+                  <h3>Named entities</h3>
+                  <div id="entities-content" class="detail-content"><p class="muted">No entities yet.</p></div>
+                </article>
+                <article class="detail-panel sentiment-panel panel">
+                  <h3>Sentiment</h3>
+                  <div id="sentiment-content" class="detail-content"><p class="muted">No sentiment yet.</p></div>
+                </article>
+              </section>
+
+              <section class="timeline-panel panel" aria-labelledby="timeline-title">
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">Evidence over time</p>
+                    <h2 id="timeline-title">Timeline</h2>
+                  </div>
+                  <span id="timeline-count" class="quiet-count"></span>
+                </div>
+                <div id="timeline-content" class="timeline-content"><p class="muted">Time-coded evidence will appear as windows finish.</p></div>
+                <h3 class="range-heading">Transcript verification outcomes</h3>
+                <div id="verification-content" class="timeline-content"><p class="muted">No saved verification outcomes yet.</p></div>
+                <details id="transcript-details" class="transcript-details" hidden>
+                  <summary>Transcript evidence</summary>
+                  <ol id="transcript-content" class="transcript-content"></ol>
+                </details>
+              </section>
+
+              <section class="coverage-panel panel" aria-labelledby="coverage-title">
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">What was analyzed</p>
+                    <h2 id="coverage-title">Coverage</h2>
+                  </div>
+                </div>
+                <p id="coverage-summary" class="coverage-summary">Audio-window outcomes will appear as processing continues.</p>
+                <h3 class="range-heading">Failed ranges</h3>
+                <div id="failed-ranges" class="range-list"></div>
+                <h3 class="range-heading">Excluded ranges</h3>
+                <div id="excluded-ranges" class="range-list"></div>
+                <h3 class="range-heading">No supported IAB topic</h3>
+                <div id="abstained-ranges" class="range-list"></div>
+              </section>
+
+              <section id="batch-panel" class="batch-panel panel" aria-labelledby="batch-title" hidden>
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">Folder run</p>
+                    <h2 id="batch-title">Per-clip outcomes</h2>
+                  </div>
+                  <span id="batch-count" class="quiet-count"></span>
+                </div>
+                <div id="batch-outcomes" class="batch-outcomes"></div>
+              </section>
+            </section>
+          </section>
+        </div>
+      </main>
+      <footer class="page-footer"><span>Topics use English transcript evidence only.</span><span id="footer-version">Experimental local analysis</span></footer>
+    </div>
+  </body>
+</html>

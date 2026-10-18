@@ -1,0 +1,4 @@
+{
+  "format": {"format_name": "mp3", "duration": "3.25"},
+  "streams": [{"index": 0, "codec_type": "audio", "codec_name": "mp3", "channels": 2, "sample_rate": "44100", "disposition": {"default": 1}}]
+}
