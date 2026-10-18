@@ -60,7 +60,7 @@ The active `english-audio-aggregation-v3` policy first applies coverage caps, th
 - **Multi-topic.** Otherwise, two or three non-redundant categories, each at least 20% of usable speech, that together pass the thresholds. They are reported as co-equal.
 - **Secondaries.** For single and rollup results, up to two nonredundant categories ranked on all verified support, including categories that won the primary role in some windows.
 
-The previously approved 70% foreground-music/genre rule belongs to the separate acoustic design; that path is disabled because no acoustic candidate was admitted. Policy thresholds are not measured model confidence. Support counts only verifier-cited segments, which is the main remaining cause of abstention; see the [v3 verification notes](verification/2026-10-18-aggregation-v3-and-schema-hardening.md).
+The previously approved 70% foreground-music/genre rule belongs to the separate acoustic design; that path is disabled because no acoustic candidate was admitted. Policy thresholds are not measured model confidence. Support counts only verifier-cited segments, which is the main remaining cause of abstention.
 
 ASR recovery quarantines the specifically tested wordless terminal segment that starts beyond audio end; other invalid timestamps fail that window, which then counts against the technical cap.
 
@@ -150,11 +150,11 @@ The run covered 21.42 hours of selected audio and accumulated 13.17 hours of per
 
 Service/API SSE reconnect and deterministic UI reconnect regression were accepted instead of manual live-browser transport disconnect/reconnect. The manual browser transport event remains unverified. Live cancellation evidence is separate; no cancellation was requested in the 308-case run.
 
-See [evaluation](verification/2026-10-11-transcript-only-v2-evaluation.md) and [delivery evidence](verification/2026-10-09-transcript-only-experimental-delivery.md). Detailed run links reference ignored local artifacts absent from GitHub clones. Worktree references in historical evidence describe provenance and are not launch requirements.
+The detailed evaluation records and benchmark manifests are kept by the maintainer and are not part of this repository.
 
 ## GitHub distribution and release state
 
-Publish source, static UI, scripts, tests, `pyproject.toml`, `uv.lock`, standards/provenance, README, this overview, and relevant reports. Git excludes weights, local manifests, environments, caches, worktrees, personal media, uploads, and job/evaluation outputs. Source archives use an explicit allowlist to avoid local models/media; wheels contain application code, UI assets, and standards only.
+Publish source, static UI, scripts, tests, `pyproject.toml`, `uv.lock`, standards/provenance, the README, and the docs in `docs/`. Git excludes weights, local manifests, environments, caches, worktrees, personal media, uploads, and job/evaluation outputs. Source archives use an explicit allowlist to avoid local models/media; wheels contain application code, UI assets, and standards only.
 
 [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md) lists upstream models/data and license metadata. The application source is licensed under the MIT License (`LICENSE`); third-party models and data keep their own terms.
 

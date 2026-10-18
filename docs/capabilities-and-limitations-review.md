@@ -22,7 +22,7 @@ The design is conservative: when the evidence is weak, it returns no label rathe
 
 ## Implementation status (updated 2026-10-18)
 
-The recommendations in section 4 have since been implemented. Sections 1–3 describe the code as reviewed, before those changes. Details and evidence are in the [v3 verification notes](verification/2026-10-18-aggregation-v3-and-schema-hardening.md).
+The recommendations in section 4 have since been implemented. Sections 1–3 describe the code as reviewed, before those changes.
 
 | Recommendation | Status |
 | --- | --- |
@@ -30,7 +30,7 @@ The recommendations in section 4 have since been implemented. Sections 1–3 des
 | 4.2 Exclude failed windows with a minimum-coverage rule; disclose partial coverage | Done (20% technical cap; `coverage` export segment) |
 | 4.3.1–4.3.2 Schema and token-budget fixes | Done (`english-transcript-verifier-v2`); closes all 31 diagnosed invalid or incomplete generation ranges |
 | 4.3.3 Bounded retry | Not added: decoding is greedy, so a retry repeats the same output |
-| 4.3.4 Break down the 17 failures | Done; see the verification notes |
+| 4.3.4 Break down the 17 failures | Done: 13 uncited secondaries, 11 verifier truncations, 7 out-of-range indices, 2 ASR timestamp failures |
 | 4.4.1–4.4.2 Language and non-vocal gates as exclusions | Done (20% non-English cap; music and silence excluded anywhere) |
 | 4.4.3–4.4.5 Independent verifier, blind evaluation, licence | Open |
 
@@ -229,5 +229,3 @@ Steps 2 and 3 change what counts as a valid result. Give each its own policy ver
 
 - [README](../README.md)
 - [Application overview](application-overview.md)
-- [Transcript-only v2 evaluation](verification/2026-10-11-transcript-only-v2-evaluation.md)
-- [Experimental delivery evidence](verification/2026-10-09-transcript-only-experimental-delivery.md)

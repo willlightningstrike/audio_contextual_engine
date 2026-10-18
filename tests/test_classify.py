@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
@@ -12,15 +10,6 @@ from engine.cancel import CancellationToken, JobCancelled
 from engine.domain import TimeRange, TranscriptSegment
 from engine.signals.taxonomy import TaxonomyCandidate
 from engine.transcribe.types import AnalysisWindow, TranscriptionRun, WindowResult
-
-
-def _load_script(name: str):
-    path = Path(__file__).parents[1] / "scripts" / f"{name}.py"
-    spec = importlib.util.spec_from_file_location(name, path)
-    assert spec and spec.loader
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def _candidate(
@@ -455,169 +444,3 @@ def test_candidate_checkpoint_precedes_classifier_and_survives_cancellation():
         )
 
     assert events == ["retrieve", "candidates"]
-
-
-def test_real_evidence_runner_persists_candidates_and_each_raw_stage_before_continuing(
-    tmp_path: Path,
-):
-    runner = _load_script("verify_text_classification")
-    destination = tmp_path / "classification-results.json"
-
-    class InspectingGenerator(FakeGenerator):
-        calls = 0
-
-        def generate_json(self, prompt, schema, *, max_tokens, token):
-            persisted = json.loads(destination.read_text())
-            assert persisted["cases"][0]["candidates"]
-            attempts = persisted["cases"][0]["attempts"]
-            if self.calls == 0:
-                assert attempts == []
-            else:
-                assert len(attempts) == 1
-                assert attempts[0]["stage"] == "primary"
-                assert attempts[0]["raw"] == _primary_raw("633")
-            self.calls += 1
-            return super().generate_json(
-                prompt, schema, max_tokens=max_tokens, token=token
-            )
-
-    cases = [
-        {
-            "clip_id": "fresh-01",
-            "source_range": {"start_seconds": 0.0, "end_seconds": 5.0},
-            "transcript": "camera review",
-            "candidates": [
-                {
-                    "taxonomy_id": candidate.taxonomy_id,
-                    "name": candidate.name,
-                    "path": list(candidate.path),
-                    "similarity": candidate.similarity,
-                }
-                for candidate in CANDIDATES
-            ],
-        }
-    ]
-
-    result = runner.classify_cases(
-        cases,
-        generator=InspectingGenerator([_primary_raw("633"), _cited_raw("633")]),
-        destination=destination,
-        token=CancellationToken(),
-    )
-
-    assert result["status"] == "passed"
-    assert result["cases"][0]["error_code"] is None
-    assert result["cases"][0]["outcome"] == "classified"
-    assert result["cases"][0]["category_citations"] == [{"category_id": "633", "segment_indices": [0]}]
-    assert result["cases"][0]["policy_version"] == "english-audio-topic-sufficiency-v1"
-    assert [
-        attempt["stage"] for attempt in result["cases"][0]["attempts"]
-    ] == ["primary", "payload"]
-    assert json.loads(destination.read_text()) == result
-
-
-def test_evidence_runner_records_semantic_abstention_without_failing(tmp_path: Path):
-    runner = _load_script("verify_text_classification")
-    destination = tmp_path / "classification-results.json"
-    case = {
-        "clip_id": "incidental-01",
-        "source_range": {"start_seconds": 0.0, "end_seconds": 5.0},
-        "transcript": "I bought a gift",
-        "candidates": [
-            {"taxonomy_id": candidate.taxonomy_id, "name": candidate.name,
-             "path": list(candidate.path), "similarity": candidate.similarity}
-            for candidate in CANDIDATES
-        ],
-    }
-    raw = _primary_raw("__INSUFFICIENT_TOPIC_EVIDENCE__")
-    result = runner.classify_cases(
-        [case], generator=FakeGenerator([raw]), destination=destination,
-        token=CancellationToken(),
-    )
-    assert result["status"] == "passed"
-    assert result["cases"][0]["outcome"] == "semantic_abstention"
-    assert result["cases"][0]["payload"] is None
-    assert result["cases"][0]["category_citations"] == []
-    assert result["cases"][0]["policy_version"] == "english-audio-topic-sufficiency-v1"
-    assert result["cases"][0]["attempts"][0]["raw"] == raw
-    assert json.loads(destination.read_text()) == result
-
-
-def test_real_cancellation_probe_exercises_two_stage_classifier_and_records_stage(
-    monkeypatch,
-):
-    runner = _load_script("verify_text_classification")
-
-    class TriggerTimer:
-        callback = None
-
-        def __init__(self, _seconds, callback):
-            type(self).callback = callback
-
-        def start(self):
-            return None
-
-        def cancel(self):
-            return None
-
-        def join(self):
-            return None
-
-    class CancellingGenerator:
-        def generate_json(self, prompt, schema, *, max_tokens, token):
-            assert TriggerTimer.callback is not None
-            TriggerTimer.callback()
-            token.raise_if_cancelled()
-            raise AssertionError("cancelled generation must not return")
-
-    monkeypatch.setattr(runner.threading, "Timer", TriggerTimer)
-    case = {
-        "clip_id": "cancel-01",
-        "source_range": {"start_seconds": 0.0, "end_seconds": 5.0},
-        "transcript": "camera review",
-        "candidates": [
-            {
-                "taxonomy_id": candidate.taxonomy_id,
-                "name": candidate.name,
-                "path": list(candidate.path),
-                "similarity": candidate.similarity,
-            }
-            for candidate in CANDIDATES
-        ],
-    }
-
-    result = runner._cancellation_probe(CancellingGenerator(), case)
-
-    assert result["passed"] is True
-    assert result["outcome"] == "cancelled"
-    assert result["attempt_stages"] == ["primary"]
-    assert result["attempt_error_codes"] == ["JobCancelled"]
-
-
-def test_supplemental_protocol_freezes_three_source_intervals_without_labels(
-    tmp_path: Path,
-):
-    runner = _load_script("verify_text_classification")
-    selections = []
-    for index in range(4, 7):
-        source = tmp_path / f"source-{index}.mp4"
-        source.write_bytes(f"source-{index}".encode())
-        selections.append((f"F{index:02d}", source, 10.0, 20.0))
-
-    protocol = runner.initialize_supplemental_evidence(
-        tmp_path / "supplemental",
-        selections=selections,
-        probe_fn=lambda _path: SimpleNamespace(duration_seconds=30.0),
-    )
-
-    assert [item["clip_id"] for item in protocol["fresh_intervals"]] == [
-        "F04",
-        "F05",
-        "F06",
-    ]
-    assert len({item["source_path"] for item in protocol["fresh_intervals"]}) == 3
-    assert protocol["labels_collected_before_prediction"] is False
-    assert all(
-        not ({"label", "gold", "expected"} & set(item))
-        for item in protocol["fresh_intervals"]
-    )

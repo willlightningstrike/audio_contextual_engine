@@ -48,7 +48,6 @@ include = [
   "/run.sh",
   "/docs/application-overview.md",
   "/docs/setup-guide.md",
-  "/docs/verification",
   "/THIRD_PARTY_NOTICES.md",
 ]
 exclude = [

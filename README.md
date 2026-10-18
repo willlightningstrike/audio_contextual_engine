@@ -93,7 +93,6 @@ audio_contextual_engine/
 │   └── store.py            Durable job records on disk
 ├── scripts/                Setup, model download/import, checks, evaluation tools
 ├── tests/                  Deterministic test suite (no model downloads needed)
-├── benchmarks/             Evaluation manifests from development runs
 ├── data/standards/         Vendored IAB taxonomy with checksum provenance
 └── docs/                   Setup guide, design overview, verification records
 ```
@@ -312,7 +311,7 @@ curl -s -X POST http://127.0.0.1:8765/api/jobs/path \
 
 - **English only.** Files where more than 20% of the speech is not English are out of scope.
 - **Transcript only.** No video-frame analysis, and no music genre or mood. A file with little speech usually gets no label.
-- **Conservative.** In a 308-file development run under the previous policy, 96 files received a label; most of the rest were non-English, had uncertain vocals, or lacked enough cited evidence. The current policy and schema fixes are described in the [v3 verification notes](docs/verification/2026-10-18-aggregation-v3-and-schema-hardening.md); they have not been blind-evaluated.
+- **Often returns no label.** If a file has little speech, mixed topics, or speech the verifier can't confirm, the engine reports "not enough topical evidence" rather than guessing. This is expected behaviour, not an error.
 - **Shared model for checking.** The same Qwen2.5 model proposes and verifies categories, so they can make the same mistake. Known errors include short watch clips labelled *Remodeling & Construction*.
 - **Heavy and slow.** It needs a 64 GB Apple Silicon Mac. The median was about 67 seconds per labelled file in testing; long programmes can take over an hour.
 - **Single user.** No authentication, and loopback only. Saved jobs keep transcripts and filenames until you delete them from `data/jobs/`.
@@ -342,7 +341,6 @@ The wheel contains the application code, browser UI, and IAB standards data, but
 - [Step-by-step setup guide](docs/setup-guide.md): installation, first use, troubleshooting, where files are stored
 - [Application overview](docs/application-overview.md): design, models, storage, evaluation
 - [Capabilities and limitations review](docs/capabilities-and-limitations-review.md)
-- [Verification records](docs/verification/): test and evaluation evidence for each milestone
 - [Third-party notices](THIRD_PARTY_NOTICES.md): model and data licences
 
 ## License

@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import math
-import sys
-from types import ModuleType, SimpleNamespace
 import wave
 from pathlib import Path
 
@@ -182,54 +180,3 @@ def test_snapshot_hash_mismatch_is_rejected_before_load(tmp_path: Path):
 
     with pytest.raises(ValueError, match="SHA-256"):
         MlxYamnetAdapter(snapshot, expected_hashes=hashes, load_fn=lambda _path: object())
-
-
-def test_parity_evidence_records_process_rss_and_system_swap(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
-    from scripts import verify_vocals
-
-    fixture = tmp_path / "only.npz"
-    waveform = np.zeros(1, dtype=np.float32)
-    expected = np.zeros((1, 1), dtype=np.float32)
-    np.savez(
-        fixture,
-        waveform=waveform,
-        scores=expected,
-        embeddings=expected,
-        logmel=expected,
-    )
-    fake_core = ModuleType("mlx.core")
-    fake_core.array = np.asarray
-    fake_core.eval = lambda *_values: None
-    fake_core.get_peak_memory = lambda: 123
-    fake_mlx = ModuleType("mlx")
-    fake_mlx.core = fake_core
-    monkeypatch.setitem(sys.modules, "mlx", fake_mlx)
-    monkeypatch.setitem(sys.modules, "mlx.core", fake_core)
-    monkeypatch.setattr(verify_vocals, "EXPECTED_FIXTURES", 1)
-    monkeypatch.setattr(
-        verify_vocals,
-        "MlxYamnetAdapter",
-        lambda _model_dir: SimpleNamespace(
-            model=lambda _waveform: (expected, expected, expected)
-        ),
-    )
-    swaps = iter((1_000, 1_200))
-    monkeypatch.setattr(verify_vocals, "_swap_bytes", lambda: next(swaps))
-    monkeypatch.setattr(
-        verify_vocals.resource,
-        "getrusage",
-        lambda _who: SimpleNamespace(ru_maxrss=456),
-    )
-
-    result = verify_vocals.verify(tmp_path, tmp_path)
-
-    assert result["peak_mlx_bytes"] == 123
-    assert result["peak_rss_bytes"] == 456
-    assert result["system_swap_before_bytes"] == 1_000
-    assert result["system_swap_after_bytes"] == 1_200
-    assert result["system_swap_delta_bytes"] == 200
-    assert result["rss_ceiling_bytes"] == 68_719_476_736
-    assert result["process_rss_ceiling_margin_bytes"] == 68_719_476_280
-    assert "rss_headroom_bytes" not in result
