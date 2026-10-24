@@ -108,7 +108,7 @@ Created locally and excluded from Git: `.venv/` (Python environment), `data/mode
 | Computer | Apple Silicon Mac (M1 or later), running natively, not under Rosetta |
 | Operating system | macOS 14 Sonoma or newer |
 | Memory | **64 GB unified memory.** The startup check refuses to run with less. |
-| Free disk space | **40 GB** for setup (about 23 GB of models plus the environment and temporary files) |
+| Free disk space | **40 GB** for setup (about 24 GB of models plus the environment and temporary files) |
 | Network | Needed only for the one-time setup |
 
 Intel Macs, Windows, and Linux are not supported. The engine has been tested on a 64 GB M1 Max; peak memory use there was about 22 GB.
@@ -129,10 +129,10 @@ Setup downloads these pinned models into `data/models/`. They are not included i
 
 | Role | Model | Size on disk |
 | --- | --- | ---: |
-| Classification and verification | [mlx-community/Qwen3.6-35B-A3B-4bit](https://huggingface.co/mlx-community/Qwen3.6-35B-A3B-4bit) | ~19 GB |
-| Speech recognition | [mlx-community/whisper-large-v3-turbo-asr-fp16](https://huggingface.co/mlx-community/whisper-large-v3-turbo-asr-fp16) | ~1.5 GB |
-| Category retrieval | [mlx-community/Qwen3-Embedding-4B-4bit-DWQ](https://huggingface.co/mlx-community/Qwen3-Embedding-4B-4bit-DWQ) | ~2.1 GB |
-| Speech/singing detection | [YAMNet](https://github.com/tensorflow/models/tree/c14bf9ad91962cf189f9f58db2132c06247fcd53/research/audioset/yamnet), converted to MLX during setup | ~14 MB |
+| Classification and verification | [mlx-community/Qwen3.6-35B-A3B-4bit](https://huggingface.co/mlx-community/Qwen3.6-35B-A3B-4bit) | ~20.4 GB |
+| Speech recognition | [mlx-community/whisper-large-v3-turbo-asr-fp16](https://huggingface.co/mlx-community/whisper-large-v3-turbo-asr-fp16) | ~1.6 GB |
+| Category retrieval | [mlx-community/Qwen3-Embedding-4B-4bit-DWQ](https://huggingface.co/mlx-community/Qwen3-Embedding-4B-4bit-DWQ) | ~2.3 GB |
+| Speech/singing detection | [YAMNet](https://github.com/tensorflow/models/tree/c14bf9ad91962cf189f9f58db2132c06247fcd53/research/audioset/yamnet), converted to MLX during setup | ~15 MB |
 
 Exact revisions and checksums are recorded in `engine/models/registry.py` and in the manifests that setup writes. Licence details are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); review them before redistributing any model files.
 
@@ -175,7 +175,7 @@ uv pip install --python .yamnet-reference/bin/python tensorflow==2.19.1 tf-keras
 .yamnet-reference/bin/python -m scripts.prepare_yamnet --output "$PWD/.yamnet-prepared"
 ```
 
-**6. Download the models and build the search index.** This is a large download (about 23 GB).
+**6. Download the models and build the search index.** This is a large download (about 24 GB).
 
 ```sh
 bash scripts/setup.sh "$PWD/.yamnet-prepared"
