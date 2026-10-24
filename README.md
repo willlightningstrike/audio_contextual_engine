@@ -1,6 +1,6 @@
 # Contextual Engine
 
-**Contextual Engine** is a local application for Apple Silicon Macs that works out what an audio or video file is *about*. It listens to the English speech (or intelligible English lyrics), transcribes it, and assigns topic categories from the [IAB Content Taxonomy 3.0](https://iabtechlab.com/standards/content-taxonomy/), the standard used for contextual advertising. Results are exported as an OpenRTB `content` object.
+**Contextual Engine** is a local application for Apple Silicon Macs that works out what an audio or video file is *about*. It listens to the English speech (or intelligible English lyrics), transcribes it, and assigns topic categories from the [IAB Content Taxonomy 3.1](https://iabtechlab.com/standards/content-taxonomy/), the standard used for contextual advertising. Results are exported as an OpenRTB `content` object.
 
 Everything runs on your Mac. After a one-time setup, no audio, transcript, or result leaves the machine.
 
@@ -34,7 +34,7 @@ Everything runs on your Mac. After a one-time setup, no audio, transcript, or re
 
 Give it a podcast, a product review, a TV programme, a tutorial, or a music video with English vocals. It returns:
 
-- **One primary topic** and **up to two secondary topics**, as IAB Content Taxonomy 3.0 categories (for example *Men's Jewelry and Watches*, or *Sports* plus *Travel*).
+- **One primary topic** and **up to two secondary topics**, as IAB Content Taxonomy 3.1 categories (for example *Men's Jewelry and Watches*, or *Sports* plus *Travel*).
 - **How the topics were chosen:** one dominant topic, a broader parent topic covering several related subtopics, or two or three co-equal topics.
 - **Keywords, named entities, and overall sentiment** taken from the transcript.
 - **A time-coded transcript and evidence timeline** showing which parts of the speech support each topic.
@@ -59,8 +59,8 @@ Media file (path, upload, or folder)
   ├─ YAMNet (MLX) ............ is there speech or singing? (per 30 s window)
   ├─ Whisper (MLX) ........... detect language; transcribe English with timestamps
   ├─ Qwen3 Embedding (MLX) ... shortlist the 15 most relevant IAB categories
-  ├─ Qwen2.5-32B (MLX) ....... classify each ~90 s transcript window
-  ├─ Qwen2.5-32B verifier .... confirm each category against cited transcript lines
+  ├─ Qwen3.6-35B-A3B (MLX) ... classify each ~90 s transcript window
+  ├─ Qwen3.6 verifier ........ confirm each category against cited transcript lines
   ├─ Whole-file policy ....... exclude out-of-scope ranges, choose the final topics
   └─ Export .................. validated OpenRTB content JSON
 ```
@@ -108,10 +108,10 @@ Created locally and excluded from Git: `.venv/` (Python environment), `data/mode
 | Computer | Apple Silicon Mac (M1 or later), running natively, not under Rosetta |
 | Operating system | macOS 14 Sonoma or newer |
 | Memory | **64 GB unified memory.** The startup check refuses to run with less. |
-| Free disk space | **40 GB** for setup (about 19 GB of models plus the environment and temporary files) |
+| Free disk space | **40 GB** for setup (about 23 GB of models plus the environment and temporary files) |
 | Network | Needed only for the one-time setup |
 
-Intel Macs, Windows, and Linux are not supported. The engine has been tested on a 64 GB M1 Max; peak memory use there was about 19 GB.
+Intel Macs, Windows, and Linux are not supported. The engine has been tested on a 64 GB M1 Max; peak memory use there was about 22 GB.
 
 ### Software
 
@@ -129,9 +129,9 @@ Setup downloads these pinned models into `data/models/`. They are not included i
 
 | Role | Model | Size on disk |
 | --- | --- | ---: |
-| Classification and verification | [mlx-community/Qwen2.5-32B-Instruct-4bit](https://huggingface.co/mlx-community/Qwen2.5-32B-Instruct-4bit) | ~17 GB |
+| Classification and verification | [mlx-community/Qwen3.6-35B-A3B-4bit](https://huggingface.co/mlx-community/Qwen3.6-35B-A3B-4bit) | ~19 GB |
 | Speech recognition | [mlx-community/whisper-large-v3-turbo-asr-fp16](https://huggingface.co/mlx-community/whisper-large-v3-turbo-asr-fp16) | ~1.5 GB |
-| Category retrieval | [mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ](https://huggingface.co/mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ) | ~0.3 GB |
+| Category retrieval | [mlx-community/Qwen3-Embedding-4B-4bit-DWQ](https://huggingface.co/mlx-community/Qwen3-Embedding-4B-4bit-DWQ) | ~2.1 GB |
 | Speech/singing detection | [YAMNet](https://github.com/tensorflow/models/tree/c14bf9ad91962cf189f9f58db2132c06247fcd53/research/audioset/yamnet), converted to MLX during setup | ~14 MB |
 
 Exact revisions and checksums are recorded in `engine/models/registry.py` and in the manifests that setup writes. Licence details are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); review them before redistributing any model files.
@@ -175,7 +175,7 @@ uv pip install --python .yamnet-reference/bin/python tensorflow==2.19.1 tf-keras
 .yamnet-reference/bin/python -m scripts.prepare_yamnet --output "$PWD/.yamnet-prepared"
 ```
 
-**6. Download the models and build the search index.** This is a large download (about 19 GB).
+**6. Download the models and build the search index.** This is a large download (about 23 GB).
 
 ```sh
 bash scripts/setup.sh "$PWD/.yamnet-prepared"
@@ -247,12 +247,12 @@ Below the result you'll find keywords, entities, the evidence timeline, the tran
 
 ## Output format
 
-A successful job exports an [OpenRTB 2.6](https://iabtechlab.com/standards/openrtb/) `content` object. `cattax: 7` means IAB Content Taxonomy 3.0; `cat` lists the primary category first. Illustrative example:
+A successful job exports an [OpenRTB 2.6](https://iabtechlab.com/standards/openrtb/) `content` object. `cattax: 9` means IAB Content Taxonomy 3.1; `cat` lists the primary category first. Illustrative example:
 
 ```json
 {
   "cat": ["581"],
-  "cattax": 7,
+  "cattax": 9,
   "context": 7,
   "language": "en",
   "len": 60,
@@ -312,8 +312,8 @@ curl -s -X POST http://127.0.0.1:8765/api/jobs/path \
 - **English only.** Files where more than 20% of the speech is not English are out of scope.
 - **Transcript only.** No video-frame analysis, and no music genre or mood. A file with little speech usually gets no label.
 - **Often returns no label.** If a file has little speech, mixed topics, or speech the verifier can't confirm, the engine reports "not enough topical evidence" rather than guessing. This is expected behaviour, not an error.
-- **Shared model for checking.** The same Qwen2.5 model proposes and verifies categories, so they can make the same mistake. Known errors include short watch clips labelled *Remodeling & Construction*.
-- **Heavy and slow.** It needs a 64 GB Apple Silicon Mac. The median was about 67 seconds per labelled file in testing; long programmes can take over an hour.
+- **Shared model for checking.** The same Qwen3.6 model proposes and verifies categories, so they can make the same mistake. Known errors in testing include coffee-brewing clips labelled *Cooking* instead of *Non-Alcoholic Beverages*.
+- **Heavy and slow.** It needs a 64 GB Apple Silicon Mac. The median was about 67 seconds per labelled file in the 308-file test with the earlier Qwen2.5 model; long programmes can take over an hour.
 - **Single user.** No authentication, and loopback only. Saved jobs keep transcripts and filenames until you delete them from `data/jobs/`.
 
 The [capabilities and limitations review](docs/capabilities-and-limitations-review.md) and the [application overview](docs/application-overview.md) have the full details.

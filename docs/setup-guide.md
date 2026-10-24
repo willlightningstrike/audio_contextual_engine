@@ -68,7 +68,7 @@ Skip this section if Section A works. Installation requires internet access; nor
 
 - Apple Silicon Mac running macOS 14 or newer; Intel Macs, Windows, and Linux are unsupported.
 - At least **64 GiB physical unified memory**. Smaller-memory Macs do not pass this version's preflight.
-- At least **40 GB free disk space** before setup. Model snapshots alone occupy approximately 19 GiB; the environment, downloads, index, and temporary files need additional space.
+- At least **40 GB free disk space** before setup. Model snapshots alone occupy approximately 23 GiB; the environment, downloads, index, and temporary files need additional space.
 - Python 3.11–3.13; the commands below ask `uv` to create a Python 3.13 application environment.
 - `uv`, `ffmpeg`, and `ffprobe` available in Terminal.
 
@@ -156,7 +156,7 @@ bash scripts/setup.sh "$PWD/.yamnet-prepared"
 
 Setup installs/checks the locked application environment, fetches the pinned models, installs the prepared YAMNet assets, builds the local IAB taxonomy index, and runs preflight. Downloads are large; leave Terminal open and wait for successful completion. There is no fixed installation-time estimate.
 
-The production bundle contains MLX Whisper for transcription, Qwen3 embeddings for taxonomy retrieval, Qwen2.5 text classification/verification, and converted YAMNet for audio eligibility. It does not install the historical Qwen2-Audio, Qwen3-Omni, or Gemma candidates.
+The production bundle contains MLX Whisper for transcription, Qwen3 embeddings for taxonomy retrieval, Qwen3.6 text classification/verification, and converted YAMNet for audio eligibility. It does not install the historical Qwen2-Audio, Qwen3-Omni, Gemma, or Qwen2.5 models.
 
 By default, all installed assets go under the project's `data/models/`. An existing `CONTEXTUAL_ENGINE_DATA_DIR` environment variable overrides that location; use a clean Terminal configuration or intentionally choose the override before setup.
 
@@ -230,7 +230,7 @@ From the new project folder, after `uv sync --locked --python 3.13`:
   --target-models "$PWD/data/models"
 ```
 
-Replace the source example with the real bundle path; quote it if it contains spaces. The source must contain `english-phase1-manifest.json`, `qwen25-manifest.json`, `yamnet-manifest.json`, their referenced assets, and `taxonomy-index/`. Loose model files alone are insufficient.
+Replace the source example with the real bundle path; quote it if it contains spaces. The source must contain `english-phase1-manifest.json`, `qwen36-manifest.json`, `yamnet-manifest.json`, their referenced assets, and `taxonomy-index/`. Loose model files alone are insufficient.
 
 The destination `data/models` must **not already exist**; import refuses to overwrite it. The importer verifies files, rebases absolute paths, and creates independent local files rather than symlinks to the source. It downloads nothing; environment installation may still need network access.
 
@@ -270,6 +270,19 @@ Complete Section B, Step 2 and follow the installer's PATH instructions. Open a 
 ### Setup reports missing assets, bad hashes, or index/manifest errors
 
 Do not bypass preflight, edit checksums, or rename historical manifests. Confirm `CONTEXTUAL_ENGINE_DATA_DIR` is not pointing at an old installation. Repair the bundle through the setup/import procedure and rerun `./run.sh --check`. Preserve the exact diagnostic if repair fails.
+
+When upgrading an existing installation from v0.1.0 (Qwen2.5-32B, Qwen3-Embedding-0.6B, Content Taxonomy 3.0), preflight reports a missing Qwen3.6 manifest, an embeddings revision mismatch, or a taxonomy-index mismatch until the new models are installed and the index is rebuilt. From the project folder, after `uv sync --locked`, fetch Qwen3.6 (about 19 GB), replace the embedder, then rebuild the index:
+
+```sh
+models="${CONTEXTUAL_ENGINE_DATA_DIR:-$PWD/data}/models"
+.venv/bin/python -m scripts.fetch_models --models-dir "$models" --candidate qwen36_text
+.venv/bin/python -m scripts.fetch_models --models-dir "$models" --candidate embeddings
+.venv/bin/python -m scripts.build_taxonomy_index --model-manifest "$models/english-phase1-manifest.json" --taxonomy data/standards/content-taxonomy-3.1.tsv --index-dir "$models/taxonomy-index" --evidence "$models/taxonomy-index/build-evidence.json" --no-diagnostics
+```
+
+The first line uses the same data folder as `./run.sh`, including any `CONTEXTUAL_ENGINE_DATA_DIR` override.
+
+Then rerun `./run.sh --check`. Once it passes, the old `qwen25_text/` folder and `qwen25-manifest.json` in that models folder are no longer used and can be deleted.
 
 ### Memory check fails on a Mac that has 64 GiB or more
 

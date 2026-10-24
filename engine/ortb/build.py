@@ -8,7 +8,7 @@ from typing import Any
 
 from engine.domain import ContentContext, SourceMetadata
 from engine.signals.result_types import AggregateResult
-from engine.standards import CATTAX_CONTENT_3_0, load_taxonomy
+from engine.standards import CATTAX_CONTENT_3_1, load_taxonomy
 from engine.ortb.validate import validate_content
 
 _SAFE_SEGMENT_ID = re.compile(r"[^a-zA-Z0-9_-]+")
@@ -69,7 +69,7 @@ def build_content(
         metadata=metadata, context=context, duration_seconds=duration_seconds
     )
     categories = [aggregate.primary_category, *aggregate.secondary_categories]
-    content["cattax"] = CATTAX_CONTENT_3_0
+    content["cattax"] = CATTAX_CONTENT_3_1
     content["cat"] = categories
     keywords = list(dict.fromkeys(item.term for item in aggregate.keywords))
     if keywords:

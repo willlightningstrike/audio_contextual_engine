@@ -175,7 +175,7 @@ def _tool_failures() -> tuple[str, ...]:
 
 def _verify_standards() -> tuple[str, ...]:
     manifest_path = ROOT / "data" / "standards" / "manifest.json"
-    taxonomy_path = ROOT / "data" / "standards" / "content-taxonomy-3.0.tsv"
+    taxonomy_path = ROOT / "data" / "standards" / "content-taxonomy-3.1.tsv"
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         digest = hashlib.sha256(taxonomy_path.read_bytes()).hexdigest()
@@ -184,8 +184,8 @@ def _verify_standards() -> tuple[str, ...]:
 
     expected_constants = {"video": 1, "music": 3, "other": 6, "unknown": 7}
     if (
-        manifest.get("iab_content_taxonomy_version") != "3.0"
-        or manifest.get("openrtb_cattax_content_3_0") != 7
+        manifest.get("iab_content_taxonomy_version") != "3.1"
+        or manifest.get("openrtb_cattax_content_3_1") != 9
         or manifest.get("context_constants") != expected_constants
         or manifest.get("sha256") != digest
     ):
@@ -211,11 +211,11 @@ def _verify_local_assets(settings: Settings) -> tuple[str, ...]:
     model_dir = settings.models_dir
     failures: list[str] = []
     production_manifest = model_dir / "english-phase1-manifest.json"
-    text_manifest = model_dir / "qwen25-manifest.json"
+    text_manifest = model_dir / "qwen36-manifest.json"
     yamnet_manifest = model_dir / "yamnet-manifest.json"
     for label, manifest in (
         ("Production model manifest", production_manifest),
-        ("Qwen2.5 model manifest", text_manifest),
+        ("Qwen3.6 model manifest", text_manifest),
         ("YAMNet asset manifest", yamnet_manifest),
     ):
         if not manifest.is_file() or manifest.is_symlink():
@@ -234,7 +234,7 @@ def _verify_local_assets(settings: Settings) -> tuple[str, ...]:
 
             load_verified_text_path(text_manifest)
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-            failures.append(f"Qwen2.5 model manifest verification failed: {exc}.")
+            failures.append(f"Qwen3.6 model manifest verification failed: {exc}.")
     if yamnet_manifest.is_file() and not yamnet_manifest.is_symlink():
         try:
             from engine.models.registry import load_verified_yamnet_path
@@ -259,7 +259,7 @@ def _verify_local_assets(settings: Settings) -> tuple[str, ...]:
 
             load_taxonomy_index(
                 settings.taxonomy_index_dir,
-                taxonomy_path=ROOT / "data" / "standards" / "content-taxonomy-3.0.tsv",
+                taxonomy_path=ROOT / "data" / "standards" / "content-taxonomy-3.1.tsv",
                 taxonomy=load_taxonomy(),
                 embedder=NoopEmbedder(),
                 expected_embedding_revision=MODEL_SPECS["embeddings"]["revision"],

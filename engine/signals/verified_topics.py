@@ -34,7 +34,7 @@ class VerifiedTopics:
 
 
 def transcript_candidate(candidate: TaxonomyCandidate) -> bool:
-    return candidate.taxonomy_id not in {"338", "650"} and candidate.path[:1] != ("Music",)
+    return candidate.taxonomy_id not in {"338", "650"} and candidate.path[:2] != ("Entertainment", "Music")
 
 
 def _overlap(first: TaxonomyCandidate, second: TaxonomyCandidate) -> bool:

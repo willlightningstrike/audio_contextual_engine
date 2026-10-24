@@ -6,7 +6,7 @@ Updated 2026-10-11. Version 0.1.0 is an experimental local application for a sin
 
 The engine extracts contextual metadata from English speech or usable English lyrics. It accepts audio files and video containers, including TV programs, podcasts, tutorials, reviews, and music videos. Every contextual decision uses the selected audio track and its transcript. Video-frame analysis is reserved for Phase 2.
 
-A successful result has one primary IAB Content Taxonomy 3.0 category and up to two supported secondary categories. Insufficient evidence can produce no label. Accuracy and inspectable evidence take priority over speed. Longer recordings are processed through the end of the selected track.
+A successful result has one primary IAB Content Taxonomy 3.1 category and up to two supported secondary categories. Insufficient evidence can produce no label. Accuracy and inspectable evidence take priority over speed. Longer recordings are processed through the end of the selected track.
 
 | Requirement | Current support |
 | --- | --- |
@@ -14,7 +14,7 @@ A successful result has one primary IAB Content Taxonomy 3.0 category and up to 
 | Memory | At least 64 GiB physical unified memory; verified on one 64 GiB M1 Max |
 | Python | 3.11–3.13; exact package versions in `uv.lock`; root migration tested with 3.13.2 |
 | Tools | `uv`, `ffmpeg`, and `ffprobe` on `PATH` |
-| Storage | About 19 GiB of model assets, plus environment, cache, jobs, uploads, and temporary audio; allow at least 40 GB free during setup |
+| Storage | About 23 GiB of model assets, plus environment, cache, jobs, uploads, and temporary audio; allow at least 40 GB free during setup |
 | Network | First-time dependency/model acquisition and optional YAMNet preparation; inference is local and offline |
 | Interface | Browser on the same Mac, loopback HTTP at `127.0.0.1:8765` |
 
@@ -26,7 +26,7 @@ Startup checks the host, binaries, package pins, forbidden frameworks, writable 
 - Submit a local path, browser upload, or folder batch. Uploads default to a 1 GiB limit; local-path inputs avoid that upload limit.
 - Screen speech/singing eligibility, detect language, and transcribe eligible English audio with timestamps.
 - Retrieve IAB candidates, classify transcript windows, and verify category support against cited transcript segments.
-- Aggregate a primary category and up to two optional secondaries, keywords, named entities, sentiment, evidence timelines, and OpenRTB-compatible fields (`cattax=7`).
+- Aggregate a primary category and up to two optional secondaries, keywords, named entities, sentiment, evidence timelines, and OpenRTB-compatible fields (`cattax=9`).
 - Display saved stage/window progress, completed verifier calls, partial transcripts, range diagnostics, success, insufficient evidence, technical failure, and cancellation.
 - Cancel at cooperative checkpoints and recover saved state. SSE delivers revisions; the browser falls back to polling after repeated live-update failures.
 - Copy/download identical server-validated JSON bytes after successful completion. Unsuccessful jobs retain diagnostics and cannot publish a successful export.
@@ -42,15 +42,15 @@ Path / upload / folder batch
   → YAMNet MLX: speech/singing eligibility
   → Whisper MLX: language and timestamped transcript
   → Qwen3 embeddings: retrieve IAB candidates
-  → Qwen2.5: strict transcript classification and metadata
-  → Qwen2.5 verifier: category citations and bounded alternatives
+  → Qwen3.6: strict transcript classification and metadata
+  → Qwen3.6 verifier: category citations and bounded alternatives
   → completion and whole-file topic-sufficiency gates
   → deterministic aggregation and validated JSON export
 ```
 
 The pipeline visits the whole selected track in sequential windows. A 30-minute or one-hour input is not represented by a few sampled opening windows. Vocal, language, transcription, and classification exclusions remain visible: processing the entire track does not mean every second yields usable evidence.
 
-The classifier and verifier use the same Qwen2.5 model in separate calls, so correlated mistakes remain possible. The verifier receives transcript evidence and taxonomy identities, with bounded attempts. Completed attempts are persisted before interpretation. Strict JSON/schema and citation validation reject malformed or incomplete generation.
+The classifier and verifier use the same Qwen3.6 model in separate calls, so correlated mistakes remain possible. The verifier receives transcript evidence and taxonomy identities, with bounded attempts. Completed attempts are persisted before interpretation. Strict JSON/schema and citation validation reject malformed or incomplete generation.
 
 The active `english-audio-aggregation-v3` policy first applies coverage caps, then decides over usable windows only:
 
@@ -71,8 +71,8 @@ The verifier (`english-transcript-verifier-v2`) and classifier schemas list vali
 | Role | Pinned model | Revision |
 | --- | --- | --- |
 | ASR | `mlx-community/whisper-large-v3-turbo-asr-fp16` | `624c19c9af5603fa73b83bce14d4aeea96156d18` |
-| Embeddings | `mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ` | `6c3ae70858513f1a78e9cdca3cae330d9075cd2a` |
-| Classification/verifier | `mlx-community/Qwen2.5-32B-Instruct-4bit` | `2938092373e5f97b95538884112085364c2da315` |
+| Embeddings | `mlx-community/Qwen3-Embedding-4B-4bit-DWQ` | `b5d88f1fe49b50d2ac01b4692ca2d387f14f9c72` |
+| Classification/verifier | `mlx-community/Qwen3.6-35B-A3B-4bit` | `38740b847e4cb78f352aba30aa41c76e08e6eb46` |
 | Vocal eligibility | Converted YAMNet MLX assets | Converter `yamnet-tf-reference-to-mlx-npz-v1`; TensorFlow Models source `c14bf9ad91962cf189f9f58db2132c06247fcd53` |
 
 Adapters use MLX on Metal. `transformers` supplies adapter/tokenizer infrastructure. PyTorch, torchvision, torchaudio, Sentence Transformers, and TensorFlow are prohibited in the application environment. Some MLX dependencies bring image-related transitive libraries; the application does not use them for frame inference.
@@ -149,6 +149,10 @@ Technical failures include invalid structured output, incomplete generation, and
 The run covered 21.42 hours of selected audio and accumulated 13.17 hours of per-case processing. Labeled cases had median processing time 67.1 seconds and maximum 990.1 seconds; the longest unsuccessful program took 6,526.2 seconds. Peak sampled RSS was 18.3 GiB and MLX memory 19.0 GiB on one 64 GiB M1 Max. These do not establish smaller-machine support or guaranteed speed.
 
 Service/API SSE reconnect and deterministic UI reconnect regression were accepted instead of manual live-browser transport disconnect/reconnect. The manual browser transport event remains unverified. Live cancellation evidence is separate; no cancellation was requested in the 308-case run.
+
+The figures above were produced with `Qwen2.5-32B-Instruct-4bit`. On 2026-10-23 the classifier/verifier switched to `Qwen3.6-35B-A3B-4bit` after a text-stage replay of the 226 saved cases that had analysis windows, using identical transcripts and Qwen3 shortlists under the v3 policy. Qwen3.6 published 115 labels against 108, had no structured-output failures against 4 windows, took a median 18 seconds of text processing per case against 51, and peaked at 20.0 GiB MLX memory against 18.7. Label quality on the 76 disagreements was judged non-blind by a reviewer, not against frozen references. The full 308-case acceptance run has not been repeated with Qwen3.6.
+
+On 2026-10-24 the taxonomy moved from Content Taxonomy 3.0 to 3.1 (`cattax` 7 to 9) and the retriever from `Qwen3-Embedding-0.6B-4bit-DWQ` to `Qwen3-Embedding-4B-4bit-DWQ`. Category IDs are unchanged in 3.1; 44 names or paths changed, including the Music branch moving under Entertainment, so older results may display new names for the same IDs. The embedder switch follows a 226-case text-stage replay on 3.0 with Qwen3.6: 4B published 122 labels against 115, about seven more correct ones with a similar number wrong, and 86% of published window labels were its top-ranked candidate against 64%; peak MLX memory rose from 20.0 to 22.1 GiB. Removing Music categories from the shortlist was also tested and published fewer labels (119), so the shortlist is unfiltered. Neither change has been evaluated on the full acceptance set.
 
 The detailed evaluation records and benchmark manifests are kept by the maintainer and are not part of this repository.
 

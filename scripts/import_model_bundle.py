@@ -23,13 +23,13 @@ from engine.standards import load_taxonomy
 
 
 MANIFEST_NAMES = (
-    "english-phase1-manifest.json", "qwen25-manifest.json", "yamnet-manifest.json",
+    "english-phase1-manifest.json", "qwen36-manifest.json", "yamnet-manifest.json",
 )
 
 
 def _verified_paths(root: Path) -> dict[str, Path]:
     paths = load_verified_production_paths(root / MANIFEST_NAMES[0])
-    paths["qwen25_text"] = load_verified_text_path(root / MANIFEST_NAMES[1])
+    paths["qwen36_text"] = load_verified_text_path(root / MANIFEST_NAMES[1])
     paths["yamnet"] = load_verified_yamnet_path(root / MANIFEST_NAMES[2])
 
     class NoopEmbedder:
@@ -38,7 +38,7 @@ def _verified_paths(root: Path) -> dict[str, Path]:
 
     load_taxonomy_index(
         root / "taxonomy-index",
-        taxonomy_path=Path(__file__).resolve().parents[1] / "data/standards/content-taxonomy-3.0.tsv",
+        taxonomy_path=Path(__file__).resolve().parents[1] / "data/standards/content-taxonomy-3.1.tsv",
         taxonomy=load_taxonomy(), embedder=NoopEmbedder(),
         expected_embedding_revision=MODEL_SPECS["embeddings"]["revision"],
     )
@@ -66,7 +66,7 @@ def _write_manifests(payloads: dict[str, Any], location: Path, paths_root: Path)
     documents = deepcopy(payloads)
     for role, item in documents[MANIFEST_NAMES[0]]["models"].items():
         item["local_path"] = str(paths_root / role)
-    documents[MANIFEST_NAMES[1]]["model"]["local_path"] = str(paths_root / "qwen25_text")
+    documents[MANIFEST_NAMES[1]]["model"]["local_path"] = str(paths_root / "qwen36_text")
     documents[MANIFEST_NAMES[2]]["artifact"]["local_path"] = str(paths_root / "yamnet")
     for name, payload in documents.items():
         (location / name).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")

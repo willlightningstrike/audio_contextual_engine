@@ -7,7 +7,8 @@ from engine.domain import TimeRange, TranscriptSegment
 from engine.signals.taxonomy import TaxonomyCandidate
 from engine.signals.text_types import ClassificationPayload, ClassificationResult, GenerationAttempt, GenerationResult, SentimentValue
 from engine.signals.topic_verify import verifier_max_tokens
-from engine.signals.verified_topics import verify_window_topics
+from engine.signals.verified_topics import transcript_candidate, verify_window_topics
+from engine.standards import load_taxonomy
 from engine.transcribe.types import AnalysisWindow
 
 
@@ -52,7 +53,7 @@ def verdict(id, status="supported", indices=(0,)):
 def run(window, proposed, responses, ranked=None, token=None, checkpoint=None):
     fake = Fake(responses)
     saved = []
-    result = verify_window_topics(window, proposed, ranked or [candidate("633"), candidate("514"), candidate("255"), candidate("363", ("Music", "Rock"))], generator=fake, token=token or CancellationToken(), checkpoint=checkpoint or saved.append)
+    result = verify_window_topics(window, proposed, ranked or [candidate("633"), candidate("514"), candidate("255"), candidate("363", ("Entertainment", "Music", "Rock Music"))], generator=fake, token=token or CancellationToken(), checkpoint=checkpoint or saved.append)
     return result, fake, saved
 
 
@@ -115,6 +116,18 @@ def test_required_call_exceeding_budget_fails_closed(window, monkeypatch):
     result, fake, _ = run(window, proposal(window, secondaries=("633",)), [verdict("514")])
     assert result.error_code == "VERIFIER_CALL_BUDGET_EXCEEDED"
     assert result.primary_category is None and len(fake.prompts) == 1
+
+
+def test_3_1_music_genres_are_not_transcript_topics():
+    music = [row for row in load_taxonomy() if row.path[:2] == ("Entertainment", "Music")]
+    assert len(music) == 34   # 338 itself plus the 33 moved genre rows
+    assert not any(transcript_candidate(candidate(row.id, row.path)) for row in music)
+
+
+def test_non_music_entertainment_and_genres_stay_eligible():
+    assert transcript_candidate(candidate("324", ("Entertainment", "Movies")))
+    assert transcript_candidate(candidate("700", ("Genres", "Thriller")))
+    assert not transcript_candidate(candidate("650", ("Genres", "Music Video")))
 
 
 def test_music_video_and_music_parent_excluded(window):

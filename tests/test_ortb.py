@@ -50,7 +50,7 @@ def test_tv_content_matches_golden_and_keeps_category_roles():
     )
 
     assert actual == json.loads((FIXTURES / "content-tv.json").read_text())
-    assert actual["cattax"] == 7
+    assert actual["cattax"] == 9
     assert actual["cat"] == ["80DV8O", "222"]
     assert actual["context"] == 1
     assert all(isinstance(item["value"], str) for group in actual["data"] for item in group["segment"])
@@ -140,7 +140,15 @@ def test_serializer_rechecks_taxonomy_before_export():
     from engine.ortb.export import serialize_content
 
     with pytest.raises(ValueError, match="taxonomy"):
-        serialize_content({"cattax": 7, "cat": ["unknown"], "context": 6})
+        serialize_content({"cattax": 9, "cat": ["unknown"], "context": 6})
+
+
+def test_validator_rejects_content_taxonomy_3_0_cattax():
+    from engine.ortb.validate import validate_content
+    from engine.standards import load_taxonomy
+
+    with pytest.raises(ValueError, match="3.1 \\(9\\)"):
+        validate_content({"cat": ["80DV8O"], "cattax": 7, "context": 6}, taxonomy=load_taxonomy())
 
 
 def test_negative_sentiment_segment_preserves_its_sign():
@@ -158,11 +166,11 @@ def test_negative_sentiment_segment_preserves_its_sign():
     [
         {"context": 8},
         {"cat": ["80DV8O"]},
-        {"cattax": 7},
-        {"cat": ["80DV8O"], "cattax": 7.0},
+        {"cattax": 9},
+        {"cat": ["80DV8O"], "cattax": 9.0},
         {
             "cat": ["80DV8O"],
-            "cattax": 7,
+            "cattax": 9,
             "data": [{"name": "contextual_engine", "segment": [{"id": "primary_category", "value": "255"}]}],
         },
     ],

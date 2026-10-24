@@ -38,7 +38,7 @@ def _default_runtime() -> SimpleNamespace:
 
 
 class MlxConstrainedTextAdapter:
-    """Own one local Qwen2.5 model and constrain every request independently."""
+    """Own one local Qwen3.6 model and constrain every request independently."""
 
     def __init__(
         self,
@@ -93,10 +93,12 @@ class MlxConstrainedTextAdapter:
             self._runtime.eval(tokens)
             return inner_processor(tokens, logits)
 
+        # Qwen3.6 defaults to an open <think> block, which the JSON grammar cannot emit.
         formatted = self._tokenizer.apply_chat_template(
             [{"role": "user", "content": prompt}],
             tokenize=False,
             add_generation_prompt=True,
+            enable_thinking=False,
         )
         token.raise_if_cancelled()
         stream = self._runtime.stream_generate(

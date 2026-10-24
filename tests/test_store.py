@@ -754,6 +754,19 @@ def test_store_export_bytes_match_shared_openrtb_serializer(store: JobStore):
     assert store.read_export(exporting.id) == serialize_content(content)
 
 
+def test_completed_export_is_returned_without_revalidation(store: JobStore, monkeypatch):
+    # Exports of jobs completed under an earlier taxonomy must stay readable.
+    exporting = advance_to(store, JobStage.EXPORTING)
+    content = json.loads((Path(__file__).parent / "fixtures/golden/content-tv.json").read_text())
+    store.promote_result(exporting.id, content)
+
+    def refuse(*_args, **_kwargs):
+        raise AssertionError("stored export was revalidated")
+
+    monkeypatch.setattr("engine.ortb.export.validate_content", refuse)
+    assert json.loads(store.read_export(exporting.id))["cattax"] == 9
+
+
 @pytest.mark.parametrize("stage", [JobStage.CANCELLED, JobStage.FAILED])
 def test_cancelled_and_failed_jobs_cannot_promote_results(store: JobStore, stage: JobStage):
     job = advance_to(store, stage)

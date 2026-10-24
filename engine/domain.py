@@ -129,7 +129,7 @@ class TranscriptSegment(_FrozenModel):
     language: str | None = None
 
 
-# Content Taxonomy 3.0 has legitimate alphanumeric IDs (for example, 80DV8O).
+# Content Taxonomy 3.1 has legitimate alphanumeric IDs (for example, 80DV8O).
 # This intentionally corrects the phase plan's stale digits-only requirement.
 _TAXONOMY_ID = re.compile(r"^[A-Za-z0-9]+$")
 

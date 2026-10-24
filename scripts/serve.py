@@ -25,7 +25,7 @@ def build_production_app(settings: Settings) -> Any:
     from engine.web.app import create_app
 
     model_manifest = settings.models_dir / "english-phase1-manifest.json"
-    text_manifest = settings.models_dir / "qwen25-manifest.json"
+    text_manifest = settings.models_dir / "qwen36-manifest.json"
     yamnet_manifest = settings.models_dir / "yamnet-manifest.json"
     models = EnglishPipelineModelRegistry(
         asr_manifest=model_manifest,
@@ -39,7 +39,7 @@ def build_production_app(settings: Settings) -> Any:
             Path(__file__).resolve().parents[1]
             / "data"
             / "standards"
-            / "content-taxonomy-3.0.tsv"
+            / "content-taxonomy-3.1.tsv"
         ),
         taxonomy=load_taxonomy(),
         embedder=models.embedder,

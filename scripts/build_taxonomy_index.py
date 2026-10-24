@@ -22,7 +22,7 @@ from engine.standards import load_taxonomy
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL_MANIFEST = ROOT / "data" / "models" / "model-manifest.json"
-DEFAULT_TAXONOMY = ROOT / "data" / "standards" / "content-taxonomy-3.0.tsv"
+DEFAULT_TAXONOMY = ROOT / "data" / "standards" / "content-taxonomy-3.1.tsv"
 DEFAULT_INDEX_DIR = ROOT / "data" / "models" / "taxonomy-index"
 DEFAULT_DIAGNOSTIC_SOURCES = (
     (

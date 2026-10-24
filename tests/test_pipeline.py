@@ -108,8 +108,8 @@ class _Models:
         self.embedder = object()
         self.text_generator = _Generator(outputs)
         self.text_model_identity = SimpleNamespace(
-            repository="mlx-community/Qwen2.5-32B-Instruct-4bit",
-            revision="2938092373e5f97b95538884112085364c2da315", manifest_sha256="a" * 64,
+            repository="mlx-community/Qwen3.6-35B-A3B-4bit",
+            revision="38740b847e4cb78f352aba30aa41c76e08e6eb46", manifest_sha256="a" * 64,
         )
 
     def release(self):
@@ -410,7 +410,7 @@ def test_sparse_topical_audio_keeps_cited_timeline_but_cannot_export(pipeline_fi
     assert saved.ortb_content is None and store.read_export(job_id) is None
 
 
-def test_fully_supported_audio_exports_v2_cattax_7(pipeline_fixture):
+def test_fully_supported_audio_exports_v2_cattax_9(pipeline_fixture):
     pipeline, store, job_id = pipeline_fixture(
         audio_seconds=10, transcript_segments=((0, 8, "camera review"),)
     )
@@ -418,7 +418,7 @@ def test_fully_supported_audio_exports_v2_cattax_7(pipeline_fixture):
 
     saved = store.load(job_id)
     assert saved.status is JobStage.COMPLETE
-    assert saved.ortb_content["cattax"] == 7
+    assert saved.ortb_content["cattax"] == 9
     assert store.read_export(job_id) is not None
     assert store.load_analysis_diagnostics(job_id)[-1]["payload"]["outcome"] == "eligible"
 
@@ -990,8 +990,8 @@ def test_pipeline_model_registry_releases_weights_without_replacing_embedder(tmp
     assert text_generator.release_count == 1
     assert models.text_generator is not text_generator
     import hashlib
-    assert models.text_model_identity.repository == "mlx-community/Qwen2.5-32B-Instruct-4bit"
-    assert models.text_model_identity.revision == "2938092373e5f97b95538884112085364c2da315"
+    assert models.text_model_identity.repository == "mlx-community/Qwen3.6-35B-A3B-4bit"
+    assert models.text_model_identity.revision == "38740b847e4cb78f352aba30aa41c76e08e6eb46"
     assert models.text_model_identity.manifest_sha256 == hashlib.sha256(b'{"verified": true}\n').hexdigest()
 
 

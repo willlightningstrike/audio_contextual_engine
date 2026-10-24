@@ -5,12 +5,11 @@
     "unknown": 7,
     "video": 1
   },
-  "iab_content_taxonomy_version": "3.0",
-  "iab_taxonomy_commit": "0c236b7d73811983bc0e7a314ebb2769acde2291",
-  "iab_taxonomy_tag": "Taxos-202308",
-  "openrtb_cattax_content_3_0": 7,
+  "iab_content_taxonomy_version": "3.1",
+  "iab_taxonomy_commit": "6dc67c743572e856c7fa86d310cfa844c9fcda85",
+  "openrtb_cattax_content_3_1": 9,
   "repository": "https://github.com/InteractiveAdvertisingBureau/Taxonomies",
-  "sha256": "88a70b83feca05b7c9f7ed6f6a70ac501b863eff7c1aca83fb90356e86e9492e",
-  "source_url": "https://raw.githubusercontent.com/InteractiveAdvertisingBureau/Taxonomies/0c236b7d73811983bc0e7a314ebb2769acde2291/Content%20Taxonomies/Content%20Taxonomy%203.0.tsv",
-  "upstream_path": "Content Taxonomies/Content Taxonomy 3.0.tsv"
+  "sha256": "7212cdc496ba347a03e703b1932bdcdd4fd29089b058f4edeb4d3da1f1222ea7",
+  "source_url": "https://raw.githubusercontent.com/InteractiveAdvertisingBureau/Taxonomies/6dc67c743572e856c7fa86d310cfa844c9fcda85/Content%20Taxonomies/Content%20Taxonomy%203.1.tsv",
+  "upstream_path": "Content Taxonomies/Content Taxonomy 3.1.tsv"
 }

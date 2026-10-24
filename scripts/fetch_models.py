@@ -12,14 +12,16 @@ from typing import Any
 
 from engine.models.registry import (
     CANDIDATES,
+    EMBEDDING_WEIGHT_FILES,
     MODEL_SPECS,
     PRODUCTION_MODEL_SPECS,
     QWEN3_OMNI_SPEC,
-    QWEN25_TEXT_SPEC,
+    QWEN36_TEXT_SPEC,
     YAMNET_CONVERTER_VERSION,
     YAMNET_ASSET_FILES,
     YAMNET_SOURCE_PROVENANCE,
     candidate_manifest_path,
+    load_verified_asr_path,
     load_verified_model_paths,
     load_verified_production_paths,
     load_verified_text_path,
@@ -135,10 +137,10 @@ def fetch_text_model(
     download: bool = True,
     downloader: Any | None = None,
 ) -> dict[str, Any]:
-    """Download or register only the pinned local Qwen2.5 text snapshot."""
+    """Download or register only the pinned local Qwen3.6 text snapshot."""
     root = Path(models_dir).resolve()
     root.mkdir(parents=True, exist_ok=True)
-    destination = (root / "qwen25_text").resolve()
+    destination = (root / "qwen36_text").resolve()
     if download:
         active_downloader = downloader
         if active_downloader is None:
@@ -148,19 +150,19 @@ def fetch_text_model(
 
         result = Path(
             active_downloader(
-                repo_id=QWEN25_TEXT_SPEC["repository"],
-                revision=QWEN25_TEXT_SPEC["revision"],
+                repo_id=QWEN36_TEXT_SPEC["repository"],
+                revision=QWEN36_TEXT_SPEC["revision"],
                 local_dir=str(destination),
             )
         ).resolve(strict=True)
         if result != destination:
-            raise RuntimeError(f"snapshot destination mismatch for Qwen2.5: {result}")
+            raise RuntimeError(f"snapshot destination mismatch for Qwen3.6: {result}")
     elif not destination.is_dir():
-        raise FileNotFoundError(f"existing Qwen2.5 snapshot is missing: {destination}")
+        raise FileNotFoundError(f"existing Qwen3.6 snapshot is missing: {destination}")
     manifest = {
         "schema_version": 1,
         "model": {
-            **QWEN25_TEXT_SPEC,
+            **QWEN36_TEXT_SPEC,
             "local_path": str(destination),
             "files": _inventory(destination),
         },
@@ -230,7 +232,7 @@ def fetch_english_phase1(
     download: bool = True,
     downloader: Any | None = None,
 ) -> dict[str, Any]:
-    """Install only ASR, embeddings, Qwen2.5 and verified MLX YAMNet assets."""
+    """Install only ASR, embeddings, Qwen3.6 and verified MLX YAMNet assets."""
     root = Path(models_dir).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
     # Validate the separately produced YAMNet artifact before starting large fetches.
@@ -275,6 +277,60 @@ def fetch_english_phase1(
     return manifest
 
 
+def fetch_embedding_model(
+    models_dir: Path,
+    *,
+    downloader: Any | None = None,
+) -> dict[str, Any]:
+    """Replace only the installed embedder: stage, verify pinned weights, then swap."""
+    root = Path(models_dir).expanduser().resolve()
+    manifest_path = root / "english-phase1-manifest.json"
+    # Only ASR is checked: the embeddings entry may still pin the previous embedder.
+    load_verified_asr_path(manifest_path)
+    manifest = json.loads(manifest_path.read_text())
+    spec = PRODUCTION_MODEL_SPECS["embeddings"]
+    destination = root / "embeddings"
+    staging = root / "embeddings.staging"
+    previous = root / "embeddings.previous"
+    if staging.exists():
+        shutil.rmtree(staging)
+    active_downloader = downloader
+    if active_downloader is None:
+        from huggingface_hub import snapshot_download
+
+        active_downloader = snapshot_download
+    try:
+        result = Path(
+            active_downloader(
+                repo_id=spec["repository"],
+                revision=spec["revision"],
+                local_dir=str(staging),
+            )
+        ).resolve(strict=True)
+        if result != staging.resolve():
+            raise RuntimeError(f"snapshot destination mismatch for embeddings: {result}")
+        files = _inventory(staging)
+        by_path = {record["path"]: record for record in files}
+        for name, pinned in EMBEDDING_WEIGHT_FILES.items():
+            record = by_path.get(name)
+            if record is None or (record["bytes"], record["sha256"]) != (pinned["bytes"], pinned["sha256"]):
+                raise ValueError(f"embedding snapshot does not match the pinned weights: {name}")
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    if previous.exists():
+        shutil.rmtree(previous)
+    if destination.exists():
+        destination.rename(previous)
+    staging.rename(destination)
+    # Inventory paths are relative to the snapshot, so they survive the rename.
+    manifest["models"]["embeddings"] = {**spec, "local_path": str(destination), "files": files}
+    _write_manifest(manifest_path, manifest)
+    load_verified_production_paths(manifest_path)
+    shutil.rmtree(previous, ignore_errors=True)
+    return manifest
+
+
 def fetch(
     models_dir: Path,
     *,
@@ -300,7 +356,7 @@ def main() -> int:
     parser.add_argument("--models-dir", type=Path, default=Path("data/models"))
     parser.add_argument(
         "--candidate",
-        choices=(*CANDIDATES, "qwen25_text", "english_phase1"),
+        choices=(*CANDIDATES, "qwen36_text", "english_phase1", "embeddings"),
         required=True,
     )
     parser.add_argument(
@@ -324,7 +380,11 @@ def main() -> int:
         )
         manifest_path = args.models_dir.resolve() / "english-phase1-manifest.json"
         roles = sorted(manifest["models"])
-    elif args.candidate == "qwen25_text":
+    elif args.candidate == "embeddings":
+        manifest = fetch_embedding_model(args.models_dir)
+        manifest_path = args.models_dir.resolve() / "english-phase1-manifest.json"
+        roles = ["embeddings"]
+    elif args.candidate == "qwen36_text":
         manifest = fetch_text_model(
             args.models_dir,
             download=not args.reuse_downloaded_candidate,

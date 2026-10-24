@@ -28,8 +28,8 @@ MODEL_SPECS = {
         "revision": "624c19c9af5603fa73b83bce14d4aeea96156d18",
     },
     "embeddings": {
-        "repository": "mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ",
-        "revision": "6c3ae70858513f1a78e9cdca3cae330d9075cd2a",
+        "repository": "mlx-community/Qwen3-Embedding-4B-4bit-DWQ",
+        "revision": "b5d88f1fe49b50d2ac01b4692ca2d387f14f9c72",
     },
     "text_audio": {
         "repository": "mlx-community/Qwen2-Audio-7B-Instruct-4bit",
@@ -37,6 +37,12 @@ MODEL_SPECS = {
     },
 }
 PRODUCTION_MODEL_SPECS = {role: dict(MODEL_SPECS[role]) for role in ("asr", "embeddings")}
+EMBEDDING_WEIGHT_FILES = {
+    "model.safetensors": {
+        "bytes": 2_262_632_177,
+        "sha256": "cd373d0bc76a3464a69b036ac6beca217a0d668bdf901ff3b05a7d7997d2d607",
+    },
+}
 YAMNET_SOURCE_PROVENANCE = {
     "repository": "tensorflow/models",
     "revision": "c14bf9ad91962cf189f9f58db2132c06247fcd53",
@@ -68,32 +74,32 @@ QWEN3_OMNI_SPEC = {
 }
 CANDIDATES = ("qwen2_audio", "qwen3_omni")
 
-QWEN25_TEXT_SPEC = {
-    "repository": "mlx-community/Qwen2.5-32B-Instruct-4bit",
-    "revision": "2938092373e5f97b95538884112085364c2da315",
+QWEN36_TEXT_SPEC = {
+    "repository": "mlx-community/Qwen3.6-35B-A3B-4bit",
+    "revision": "38740b847e4cb78f352aba30aa41c76e08e6eb46",
 }
-QWEN25_WEIGHT_FILES = {
+QWEN36_WEIGHT_FILES = {
     "model-00001-of-00004.safetensors": {
-        "bytes": 5_366_582_717,
-        "sha256": "3187f89267bdebe362410a3b23c2767d9d0707f4ffbbf7a945e5cd0abf535a21",
+        "bytes": 5_288_196_018,
+        "sha256": "09f3e6ecb0b7af6e6a38bc8169a134c821b0924c2679b2bb8f4426ad38d032b8",
     },
     "model-00002-of-00004.safetensors": {
-        "bytes": 5_335_712_920,
-        "sha256": "31547d7a3e6583eea8bcc1b7230680f8132143c43c19cab3eab75f6b31d33e33",
+        "bytes": 5_368_472_749,
+        "sha256": "31dcdb1c49eebdb1505bd14e3cb33f9cf900bd2546b638f2464694ae763a033f",
     },
     "model-00003-of-00004.safetensors": {
-        "bytes": 5_366_641_934,
-        "sha256": "d00aec153b1ea6540446c1769ef76004e4ee11855844919f48434f0d4f77b33f",
+        "bytes": 5_368_324_139,
+        "sha256": "3e66de06a1f03dade16a612a368cfce4a4c9caa4efd7d28185454384082cec03",
     },
     "model-00004-of-00004.safetensors": {
-        "bytes": 2_362_540_888,
-        "sha256": "4dae2dd0355ac7ad5440ccd4d5f60a08084cda924c058402b979654359150743",
+        "bytes": 4_377_211_365,
+        "sha256": "a5d0cf03519c26f8b506df6b0ba60526e5c08c8cea22d0c21ce92950e58a5422",
     },
 }
 
 
 def text_manifest_path(models_dir: Path) -> Path:
-    return Path(models_dir) / "qwen25-manifest.json"
+    return Path(models_dir) / "qwen36-manifest.json"
 
 
 def model_specs(candidate: str) -> dict[str, dict[str, str]]:
@@ -241,26 +247,26 @@ def load_verified_asr_path(manifest_path: Path) -> Path:
 
 
 def load_verified_text_path(manifest_path: Path) -> Path:
-    """Verify the pinned local Qwen2.5 snapshot without selecting legacy audio models."""
+    """Verify the pinned local Qwen3.6 snapshot without selecting legacy audio models."""
     payload = _load_manifest_payload(
-        manifest_path, manifest_name="Qwen2.5 model manifest"
+        manifest_path, manifest_name="Qwen3.6 model manifest"
     )
     item = payload.get("model")
     if (
         payload.get("schema_version") != 1
         or not isinstance(item, dict)
-        or item.get("repository") != QWEN25_TEXT_SPEC["repository"]
-        or item.get("revision") != QWEN25_TEXT_SPEC["revision"]
+        or item.get("repository") != QWEN36_TEXT_SPEC["repository"]
+        or item.get("revision") != QWEN36_TEXT_SPEC["revision"]
     ):
-        raise ValueError("model manifest does not pin the required Qwen2.5 revision")
-    snapshot, expected_files = _parse_snapshot_inventory(item, label="Qwen2.5")
-    if set(QWEN25_WEIGHT_FILES) - set(expected_files):
-        raise ValueError("Qwen2.5 manifest is missing one or more pinned weight shards")
-    for name, pinned in QWEN25_WEIGHT_FILES.items():
+        raise ValueError("model manifest does not pin the required Qwen3.6 revision")
+    snapshot, expected_files = _parse_snapshot_inventory(item, label="Qwen3.6")
+    if set(QWEN36_WEIGHT_FILES) - set(expected_files):
+        raise ValueError("Qwen3.6 manifest is missing one or more pinned weight shards")
+    for name, pinned in QWEN36_WEIGHT_FILES.items():
         record = expected_files[name]
         if record["bytes"] != pinned["bytes"] or record["sha256"] != pinned["sha256"]:
-            raise ValueError(f"Qwen2.5 pinned weight metadata mismatch for {name}")
-    _verify_snapshot_inventory(snapshot, expected_files, label="Qwen2.5")
+            raise ValueError(f"Qwen3.6 pinned weight metadata mismatch for {name}")
+    _verify_snapshot_inventory(snapshot, expected_files, label="Qwen3.6")
     return snapshot
 
 
@@ -507,7 +513,7 @@ class EnglishPipelineModelRegistry:
         if Path(text_manifest).read_bytes() != manifest_bytes:
             raise ValueError("text manifest changed during verification")
         self._text_model_identity = TextModelIdentity(
-            **QWEN25_TEXT_SPEC, manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest()
+            **QWEN36_TEXT_SPEC, manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest()
         )
         self.yamnet_path = require_resolved_local_directory(yamnet_path)
         self._transcriber = _LazyModel(lambda: load_asr(self.asr_path))

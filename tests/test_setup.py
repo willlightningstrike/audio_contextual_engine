@@ -14,14 +14,14 @@ def test_text_identity_hashes_exact_verified_manifest_bytes(tmp_path, monkeypatc
     content = b"test local shard"
     weights = {"model.safetensors": {"bytes": len(content),
                                     "sha256": hashlib.sha256(content).hexdigest()}}
-    monkeypatch.setattr(registry, "QWEN25_WEIGHT_FILES", weights)
+    monkeypatch.setattr(registry, "QWEN36_WEIGHT_FILES", weights)
     snapshot = tmp_path / "text"
     snapshot.mkdir()
     (snapshot / "model.safetensors").write_bytes(content)
     manifest = tmp_path / "text-manifest.json"
     payload = {"schema_version": 1, "model": {
-        "repository": "mlx-community/Qwen2.5-32B-Instruct-4bit",
-        "revision": "2938092373e5f97b95538884112085364c2da315",
+        "repository": "mlx-community/Qwen3.6-35B-A3B-4bit",
+        "revision": "38740b847e4cb78f352aba30aa41c76e08e6eb46",
         "local_path": str(snapshot.resolve()),
         "files": [{"path": "model.safetensors", **weights["model.safetensors"]}],
     }}
@@ -33,8 +33,8 @@ def test_text_identity_hashes_exact_verified_manifest_bytes(tmp_path, monkeypatc
         asr_manifest=tmp_path / "unused-asr", embedding_manifest=tmp_path / "unused-embedder",
         text_manifest=manifest, yamnet_path=snapshot.resolve())
     identity = models.text_model_identity
-    assert identity.repository == "mlx-community/Qwen2.5-32B-Instruct-4bit"
-    assert identity.revision == "2938092373e5f97b95538884112085364c2da315"
+    assert identity.repository == "mlx-community/Qwen3.6-35B-A3B-4bit"
+    assert identity.revision == "38740b847e4cb78f352aba30aa41c76e08e6eb46"
     assert identity.manifest_sha256 == hashlib.sha256(exact_bytes).hexdigest()
     assert identity.manifest_sha256 != hashlib.sha256(json.dumps(payload).encode()).hexdigest()
     with pytest.raises(FrozenInstanceError):
@@ -267,7 +267,8 @@ def test_standards_manifest_is_verified_before_server_start(
     (standards / "manifest.json").write_text(
         json.dumps(
             {
-                "iab_content_taxonomy_version": "3.0",
+                "iab_content_taxonomy_version": "3.1",
+                "openrtb_cattax_content_3_1": 9,
                 "sha256": "0" * 64,
                 "context_constants": {
                     "video": 1,
@@ -278,7 +279,7 @@ def test_standards_manifest_is_verified_before_server_start(
             }
         )
     )
-    (standards / "content-taxonomy-3.0.tsv").write_text("not the pinned taxonomy")
+    (standards / "content-taxonomy-3.1.tsv").write_text("not the pinned taxonomy")
     monkeypatch.setattr(check_setup, "ROOT", tmp_path)
 
     failures = check_setup._verify_standards()
@@ -373,13 +374,13 @@ def test_preflight_accepts_only_complete_local_production_assets_without_legacy_
         )
     )
 
-    text_dir = models_dir / "qwen25_text"
+    text_dir = models_dir / "qwen36_text"
     text_dir.mkdir()
     text_data = b"only a small test shard"
     (text_dir / "model-00001-of-00004.safetensors").write_bytes(text_data)
     monkeypatch.setattr(
         registry,
-        "QWEN25_WEIGHT_FILES",
+        "QWEN36_WEIGHT_FILES",
         {
             "model-00001-of-00004.safetensors": {
                 "bytes": len(text_data),
@@ -387,12 +388,12 @@ def test_preflight_accepts_only_complete_local_production_assets_without_legacy_
             }
         },
     )
-    (models_dir / "qwen25-manifest.json").write_text(
+    (models_dir / "qwen36-manifest.json").write_text(
         json.dumps(
             {
                 "schema_version": 1,
                 "model": {
-                    **registry.QWEN25_TEXT_SPEC,
+                    **registry.QWEN36_TEXT_SPEC,
                     "local_path": str(text_dir.resolve()),
                     "files": [
                         {
@@ -441,7 +442,7 @@ def test_preflight_accepts_only_complete_local_production_assets_without_legacy_
             return np.ones((len(texts), 2), dtype=np.float32)
 
     taxonomy_path = (
-        Path(__file__).parents[1] / "data" / "standards" / "content-taxonomy-3.0.tsv"
+        Path(__file__).parents[1] / "data" / "standards" / "content-taxonomy-3.1.tsv"
     )
     build_taxonomy_index(
         settings.taxonomy_index_dir,

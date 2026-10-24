@@ -13,7 +13,7 @@ def _bundle(tmp_path, monkeypatch):
     source = tmp_path / "source"
     source.mkdir()
     components = {name: source / name for name in
-                  ("asr", "embeddings", "qwen25_text", "yamnet", "taxonomy-index")}
+                  ("asr", "embeddings", "qwen36_text", "yamnet", "taxonomy-index")}
     for name, directory in components.items():
         directory.mkdir()
         (directory / "asset").write_bytes(name.encode())
@@ -22,7 +22,7 @@ def _bundle(tmp_path, monkeypatch):
     payloads = {
         importer.MANIFEST_NAMES[0]: {"models": {name: {**marker, "local_path": str(components[name])}
                                               for name in ("asr", "embeddings")}},
-        importer.MANIFEST_NAMES[1]: {"model": {**marker, "local_path": str(components["qwen25_text"])}},
+        importer.MANIFEST_NAMES[1]: {"model": {**marker, "local_path": str(components["qwen36_text"])}},
         importer.MANIFEST_NAMES[2]: {"artifact": {**marker, "local_path": str(components["yamnet"])}},
     }
     for name, payload in payloads.items():
@@ -31,7 +31,7 @@ def _bundle(tmp_path, monkeypatch):
     def verify(root):
         docs = {name: json.loads((root / name).read_text()) for name in importer.MANIFEST_NAMES}
         items = {**docs[importer.MANIFEST_NAMES[0]]["models"],
-                 "qwen25_text": docs[importer.MANIFEST_NAMES[1]]["model"],
+                 "qwen36_text": docs[importer.MANIFEST_NAMES[1]]["model"],
                  "yamnet": docs[importer.MANIFEST_NAMES[2]]["artifact"]}
         for role, item in items.items():
             assert item["files"] == marker["files"]

@@ -48,10 +48,11 @@ def _runtime(streams, events):
     model = object()
 
     class Tokenizer:
-        def apply_chat_template(self, messages, *, tokenize, add_generation_prompt):
+        def apply_chat_template(self, messages, *, tokenize, add_generation_prompt, enable_thinking):
             assert messages == [{"role": "user", "content": "prompt"}]
             assert tokenize is False
             assert add_generation_prompt is True
+            assert enable_thinking is False
             return "formatted"
 
     class Processor:
@@ -170,7 +171,7 @@ def test_model_module_import_does_not_eagerly_import_or_initialize_mlx(monkeypat
 def _manifest(tmp_path: Path, monkeypatch) -> tuple[Path, Path]:
     import engine.models.registry as registry
 
-    snapshot = (tmp_path / "qwen25_text").resolve()
+    snapshot = (tmp_path / "qwen36_text").resolve()
     snapshot.mkdir()
     expected = {}
     inventory = []
@@ -185,14 +186,14 @@ def _manifest(tmp_path: Path, monkeypatch) -> tuple[Path, Path]:
         }
         expected[name] = {"bytes": record["bytes"], "sha256": record["sha256"]}
         inventory.append(record)
-    monkeypatch.setattr(registry, "QWEN25_WEIGHT_FILES", expected)
-    manifest = tmp_path / "qwen25-manifest.json"
+    monkeypatch.setattr(registry, "QWEN36_WEIGHT_FILES", expected)
+    manifest = tmp_path / "qwen36-manifest.json"
     manifest.write_text(
         json.dumps(
             {
                 "schema_version": 1,
                 "model": {
-                    **registry.QWEN25_TEXT_SPEC,
+                    **registry.QWEN36_TEXT_SPEC,
                     "local_path": str(snapshot),
                     "files": inventory,
                 },
@@ -202,7 +203,7 @@ def _manifest(tmp_path: Path, monkeypatch) -> tuple[Path, Path]:
     return manifest, snapshot
 
 
-def test_verified_qwen25_manifest_checks_four_pinned_shards_before_load(
+def test_verified_qwen36_manifest_checks_four_pinned_shards_before_load(
     tmp_path: Path, monkeypatch
 ):
     from engine.models.registry import load_verified_text_path
@@ -241,7 +242,7 @@ def test_text_registry_loads_one_resident_adapter_and_releases_it(
     assert loads == [snapshot]
 
 
-def test_setup_registers_existing_qwen25_snapshot_without_selecting_legacy_audio(
+def test_setup_registers_existing_qwen36_snapshot_without_selecting_legacy_audio(
     tmp_path: Path, monkeypatch
 ):
     import engine.models.registry as registry
@@ -261,9 +262,9 @@ def test_setup_registers_existing_qwen25_snapshot_without_selecting_legacy_audio
 
     payload = fetch_models.fetch_text_model(models_dir, download=False)
 
-    expected_manifest = models_dir / "qwen25-manifest.json"
-    assert payload["model"]["repository"] == registry.QWEN25_TEXT_SPEC["repository"]
-    assert payload["model"]["revision"] == registry.QWEN25_TEXT_SPEC["revision"]
+    expected_manifest = models_dir / "qwen36-manifest.json"
+    assert payload["model"]["repository"] == registry.QWEN36_TEXT_SPEC["repository"]
+    assert payload["model"]["revision"] == registry.QWEN36_TEXT_SPEC["revision"]
     assert Path(payload["model"]["local_path"]) == snapshot
     assert registry.load_verified_text_path(expected_manifest) == snapshot
     assert downloads == []

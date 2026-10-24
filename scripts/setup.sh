@@ -26,7 +26,7 @@ uv run python -m scripts.fetch_models \
   --yamnet-assets "$yamnet_assets"
 uv run python -m scripts.build_taxonomy_index \
   --model-manifest "$models_dir/english-phase1-manifest.json" \
-  --taxonomy "$root/data/standards/content-taxonomy-3.0.tsv" \
+  --taxonomy "$root/data/standards/content-taxonomy-3.1.tsv" \
   --index-dir "$models_dir/taxonomy-index" \
   --evidence "$models_dir/taxonomy-index/build-evidence.json" \
   --no-diagnostics

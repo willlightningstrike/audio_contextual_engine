@@ -10,7 +10,7 @@
 
 ## Summary
 
-Contextual Engine is a local, single-user application for Apple Silicon Macs. It assigns **IAB Content Taxonomy 3.0** topic labels to media, using only the **transcript of English speech or lyrics**. It does not analyse video frames or acoustic genre.
+Contextual Engine is a local, single-user application for Apple Silicon Macs. It assigns **IAB Content Taxonomy 3.1** topic labels to media, using only the **transcript of English speech or lyrics**. It does not analyse video frames or acoustic genre.
 
 The design is conservative: when the evidence is weak, it returns no label rather than a guess. It is a well-engineered, auditable **experimental prototype**. It works best on long, single-topic English talk content such as reviews, podcasts and tutorials. It is not yet ready for broad production use, for three reasons:
 
@@ -62,8 +62,8 @@ Path / upload / folder batch
   → Whisper large-v3-turbo (MLX): language detection and timestamped transcript
   → Group transcript into ~90 s analysis windows
   → Qwen3 embeddings: shortlist the 15 nearest IAB categories
-  → Qwen2.5-32B: strict JSON classification (primary, secondaries, keywords, entities, sentiment)
-  → Qwen2.5-32B verifier: per-category check against cited transcript segments
+  → Qwen3.6-35B-A3B: strict JSON classification (primary, secondaries, keywords, entities, sentiment)
+  → Qwen3.6-35B-A3B verifier: per-category check against cited transcript segments
   → Completion gate and whole-file topic-sufficiency gate
   → Deterministic aggregation and validated OpenRTB export
 ```
@@ -85,7 +85,7 @@ Path / upload / folder batch
 - Keywords, named entities and sentiment.
 - An evidence timeline with cited transcript time ranges.
 - A coverage summary of analysed, failed and excluded ranges.
-- Fields compatible with the OpenRTB content object (`cattax=7`), validated before export.
+- Fields compatible with the OpenRTB content object (`cattax=9`), validated before export.
 
 ### 1.4 Service and user experience
 
@@ -110,7 +110,7 @@ Path / upload / folder batch
 
 ### 2.1 Strict gating means most files get no label
 
-In the 308-case development run (non-blind), **96 of 308 cases (31%)** produced a final label.
+In the 308-case development run (non-blind), **96 of 308 cases (31%)** produced a final label. That run used Qwen2.5-32B. A later text-stage replay of 226 of those cases with the current Qwen3.6-35B-A3B labelled 115 against Qwen2.5's 108, with no structured-output failures; the full run has not been repeated.
 
 | Outcome | Cases |
 | --- | ---: |
@@ -129,7 +129,7 @@ The causes are visible in the code:
 
 ### 2.2 Accuracy and trust
 
-- **The verifier can share the classifier's mistakes.** The classifier and verifier are the same Qwen2.5-32B model in separate calls. The verifier checks that cited text supports a topic; it does not check whether Whisper transcribed the audio correctly.
+- **The verifier can share the classifier's mistakes.** The classifier and verifier are the same Qwen3.6-35B-A3B model in separate calls. The verifier checks that cited text supports a topic; it does not check whether Whisper transcribed the audio correctly.
 - **Known wrong labels.** Short Tissot watch clips were labelled *Remodeling & Construction*, and a camera clip received an incorrect secondary category.
 - **Scores are not confidences.** Keyword, entity and sentiment scores are uncalibrated model outputs, and the verifier does not check these fields.
 - **No measure of real-world accuracy.** The evaluation was non-blind and used a convenience inventory that included excerpts and near duplicates.
@@ -147,8 +147,8 @@ The causes are visible in the code:
 | Item | Requirement or measurement |
 | --- | --- |
 | Platform | macOS 14 or later, Apple Silicon (arm64) |
-| Memory | At least 64 GiB unified memory; peak about 19 GiB MLX memory, tested on one M1 Max only |
-| Disk | About 19 GiB of models; at least 40 GB free for setup |
+| Memory | At least 64 GiB unified memory; peak about 22 GiB MLX memory with Qwen3.6 and Qwen3-Embedding-4B, tested on one M1 Max only |
+| Disk | About 23 GiB of models; at least 40 GB free for setup |
 | Tools | `ffmpeg`, `ffprobe`, `uv` |
 | Speed | Median 67.1 s per labelled case; maximum 990 s; longest unsuccessful case 6,526 s (about 1.8 h) |
 

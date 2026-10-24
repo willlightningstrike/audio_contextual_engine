@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 from engine.standards import (
-    CATTAX_CONTENT_3_0,
+    CATTAX_CONTENT_3_1,
     CONTEXT_MUSIC,
     CONTEXT_OTHER,
     CONTEXT_UNKNOWN,
@@ -13,16 +13,15 @@ from engine.standards import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TSV_PATH = ROOT / "data" / "standards" / "content-taxonomy-3.0.tsv"
+TSV_PATH = ROOT / "data" / "standards" / "content-taxonomy-3.1.tsv"
 MANIFEST_PATH = ROOT / "data" / "standards" / "manifest.json"
-EXPECTED_SHA256 = "88a70b83feca05b7c9f7ed6f6a70ac501b863eff7c1aca83fb90356e86e9492e"
-EXPECTED_COMMIT = "0c236b7d73811983bc0e7a314ebb2769acde2291"
+EXPECTED_SHA256 = "7212cdc496ba347a03e703b1932bdcdd4fd29089b058f4edeb4d3da1f1222ea7"
+EXPECTED_COMMIT = "6dc67c743572e856c7fa86d310cfa844c9fcda85"
 
 
 def test_adcom_constants_are_pinned():
-    assert CATTAX_CONTENT_3_0 == 7
+    assert CATTAX_CONTENT_3_1 == 9
     assert (CONTEXT_VIDEO, CONTEXT_MUSIC, CONTEXT_OTHER, CONTEXT_UNKNOWN) == (1, 3, 6, 7)
-    assert CATTAX_CONTENT_3_0 != 8
 
 
 def test_taxonomy_has_unique_ids_and_preserves_numeric_ids_as_strings():
@@ -45,7 +44,18 @@ def test_taxonomy_normalizes_self_parented_top_level_rows_and_freezes_rows():
 def test_vendored_bytes_and_provenance_are_pinned():
     manifest = json.loads(MANIFEST_PATH.read_text())
     assert hashlib.sha256(TSV_PATH.read_bytes()).hexdigest() == EXPECTED_SHA256
-    assert manifest["iab_content_taxonomy_version"] == "3.0"
-    assert manifest["iab_taxonomy_tag"] == "Taxos-202308"
+    assert manifest["iab_content_taxonomy_version"] == "3.1"
     assert manifest["iab_taxonomy_commit"] == EXPECTED_COMMIT
+    assert manifest["openrtb_cattax_content_3_1"] == 9
     assert manifest["sha256"] == EXPECTED_SHA256
+    assert "iab_taxonomy_tag" not in manifest and "openrtb_cattax_content_3_0" not in manifest
+
+
+def test_taxonomy_3_1_rows():
+    rows = {row.id: row for row in load_taxonomy()}
+    assert len(rows) == 704
+    assert rows["700"].path == ("Genres", "Thriller")
+    assert rows["338"].path == ("Entertainment", "Music")
+    assert rows["342"].path == ("Entertainment", "Music", "Adult Album Alternative")
+    assert rows["160"].name == "Parks & Nature"
+    assert not any(row.path[:1] == ("Music",) for row in rows.values())

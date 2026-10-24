@@ -7,7 +7,7 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from engine.standards import CATTAX_CONTENT_3_0
+from engine.standards import CATTAX_CONTENT_3_1
 
 _CONTEXTS = frozenset({1, 3, 6, 7})
 _SEGMENT_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")
@@ -54,8 +54,8 @@ def validate_content(content: Mapping[str, Any], *, taxonomy: Sequence[Any]) -> 
         raise ValueError("cat and cattax must either both be present or both be omitted")
     if has_categories:
         cattax = content["cattax"]
-        if isinstance(cattax, bool) or not isinstance(cattax, int) or cattax != CATTAX_CONTENT_3_0:
-            raise ValueError("cattax must identify IAB Content Taxonomy 3.0 (7)")
+        if isinstance(cattax, bool) or not isinstance(cattax, int) or cattax != CATTAX_CONTENT_3_1:
+            raise ValueError("cattax must identify IAB Content Taxonomy 3.1 (9)")
         categories = content["cat"]
         if not isinstance(categories, list) or not 1 <= len(categories) <= 3:
             raise ValueError("cat must contain a primary and at most two secondary IDs")
