@@ -57,6 +57,10 @@ class JobNotFound(FileNotFoundError):
     """A valid job identifier has no durable snapshot."""
 
 
+class JobsDirectoryInUse(RuntimeError):
+    """Another live runner already owns this jobs directory."""
+
+
 class JobAlreadyExists(FileExistsError):
     """A create request collided with an already-reserved UUID directory."""
 
@@ -126,6 +130,35 @@ class JobStore:
         self.jobs_root = Path(jobs_root)
         self._uuid_factory = uuid_factory
         self._local_lock = RLock()
+        self._owner_fd: int | None = None
+
+    def claim_ownership(self) -> None:
+        """Hold an exclusive lock so only one live runner recovers and runs these jobs.
+
+        The lock is a separate file inside the root, so it does not contend with
+        the per-operation locks taken on the root directory; listings skip it.
+        """
+        if self._owner_fd is not None:
+            return
+        with self._root_anchor(create=True) as (_, root_fd):
+            descriptor = os.open(
+                ".owner.lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600, dir_fd=root_fd
+            )
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            os.close(descriptor)
+            raise JobsDirectoryInUse(
+                f"another Contextual Engine server is already using {self.jobs_root}"
+            ) from exc
+        self._owner_fd = descriptor
+
+    def release_ownership(self) -> None:
+        if self._owner_fd is None:
+            return
+        fcntl.flock(self._owner_fd, fcntl.LOCK_UN)
+        os.close(self._owner_fd)
+        self._owner_fd = None
 
     def create(self, request: JobRequest) -> JobRecord:
         request = JobRequest.model_validate_json(request.model_dump_json())

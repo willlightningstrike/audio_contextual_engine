@@ -34,6 +34,8 @@ class JobRunner:
         self._closed = False
         self._shutdown_complete = threading.Event()
 
+        # Claim the jobs before recovery marks active ones as interrupted.
+        store.claim_ownership()
         jobs = store.recover()
         batches = store.recover_batches()
         self._batch_children = {
@@ -142,6 +144,7 @@ class JobRunner:
         await asyncio.to_thread(self._queue.join)
         self._queue.put(None)
         await asyncio.to_thread(self._worker.join)
+        self.store.release_ownership()
         with self._lock:
             self._closed = True
             self._shutdown_complete.set()

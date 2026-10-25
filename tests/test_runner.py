@@ -379,3 +379,34 @@ async def test_restart_fails_active_batch_and_cancels_unstarted_children_without
     assert recovered.cancelled_count == 1
     assert store.load(children[0].id).status is JobStage.FAILED
     assert store.load(children[1].id).status is JobStage.CANCELLED
+
+
+@pytest.mark.asyncio
+async def test_second_runner_on_the_same_jobs_refuses_and_leaves_active_work_alone(tmp_path: Path):
+    # Regression: a duplicate launch recovered the live server's
+    # active job as failed / interrupted_by_restart before finding the port taken.
+    from engine.lifecycle import JobStage
+    from engine.runner import JobRunner
+    from engine.store import JobsDirectoryInUse, JobStore
+
+    store = JobStore(tmp_path / "jobs")
+    pipeline = _Pipeline(store, block_first=True)
+    runner = JobRunner(pipeline, store)
+    job = _request(store, "a.wav")
+    await runner.enqueue(job.id)
+    assert await asyncio.to_thread(pipeline.first_started.wait, 2)
+    record = store.load(job.id)
+    store.save(record.model_copy(update={
+        "status": JobStage.EXTRACTING_AUDIO,
+        "progress": record.progress.advance(stage=JobStage.EXTRACTING_AUDIO, percent=2, message="extracting"),
+    }))
+
+    second_store = JobStore(tmp_path / "jobs")
+    with pytest.raises(JobsDirectoryInUse):
+        JobRunner(_Pipeline(second_store), second_store)
+    assert store.load(job.id).status is JobStage.EXTRACTING_AUDIO
+
+    pipeline.release_first.set()
+    await runner.shutdown()
+    successor = JobRunner(_Pipeline(second_store), second_store)
+    await successor.shutdown()

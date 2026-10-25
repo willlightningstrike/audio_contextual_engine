@@ -24,6 +24,9 @@ def build_production_app(settings: Settings) -> Any:
     from engine.store import JobStore
     from engine.web.app import create_app
 
+    # Fail fast, before loading models, if another server owns the jobs.
+    store = JobStore(settings.jobs_dir)
+    store.claim_ownership()
     model_manifest = settings.models_dir / "english-phase1-manifest.json"
     text_manifest = settings.models_dir / "qwen36-manifest.json"
     yamnet_manifest = settings.models_dir / "yamnet-manifest.json"
@@ -45,7 +48,6 @@ def build_production_app(settings: Settings) -> Any:
         embedder=models.embedder,
         expected_embedding_revision=MODEL_SPECS["embeddings"]["revision"],
     )
-    store = JobStore(settings.jobs_dir)
     runner = JobRunner(Pipeline(store, models, taxonomy_index), store)
     app = create_app(store=store, runner=runner, settings=settings)
     app.router.add_event_handler("shutdown", runner.shutdown)
@@ -62,7 +64,13 @@ def main() -> int:
             print(f"- {failure}", file=sys.stderr)
         return 1
 
-    app = build_production_app(settings)
+    from engine.store import JobsDirectoryInUse
+
+    try:
+        app = build_production_app(settings)
+    except JobsDirectoryInUse as exc:
+        print(f"Contextual Engine will not start: {exc}", file=sys.stderr)
+        return 1
     import uvicorn
 
     uvicorn.run(app, host=settings.bind_host, port=settings.port)

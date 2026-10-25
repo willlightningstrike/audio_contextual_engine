@@ -533,3 +533,25 @@ def test_production_app_serves_and_shuts_down_worker_with_pinned_fastapi(tmp_pat
     finally:
         for worker in workers:
             asyncio.run(worker.shutdown())
+
+
+def test_second_server_stops_before_loading_models_when_jobs_are_owned(
+    tmp_path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from engine.config import Settings
+    from engine.models import registry
+    from engine.store import JobStore
+    from scripts import serve
+
+    settings = Settings(data_dir=tmp_path)
+    monkeypatch.setattr(serve, "check_setup", lambda _settings: ())
+    monkeypatch.setattr(serve.Settings, "from_environment", classmethod(lambda cls: settings))
+    monkeypatch.setattr(registry, "EnglishPipelineModelRegistry", lambda **_: (_ for _ in ()).throw(
+        AssertionError("models must not load while another server owns the jobs")))
+    owner = JobStore(settings.jobs_dir)
+    owner.claim_ownership()
+    try:
+        assert serve.main() == 1
+    finally:
+        owner.release_ownership()
+    assert "already using" in capsys.readouterr().err
