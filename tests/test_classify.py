@@ -109,6 +109,19 @@ def test_prompt_suffix_matches_the_tracked_frozen_fixture_byte_for_byte():
     assert STRICTER_SECONDARY_SUFFIX == json.loads(fixture)["prompt_suffix"]
 
 
+def test_topic_prompt_limits_optional_slots_to_secondaries_and_asks_for_salient_terms():
+    from engine.signals.prompts import build_classification_prompt, build_locked_classification_prompt
+
+    prompt = build_locked_classification_prompt(_window(), CANDIDATES, "633", topic_sufficiency=True)
+
+    assert "Do not fill optional slots." not in prompt
+    assert "Do not fill optional secondary_categories slots" in prompt
+    assert "leave unsupported secondary slots empty" in prompt
+    assert "list up to 8 salient terms" in prompt and "list up to 8 named" in prompt
+    assert "Leave keywords or entities empty only when the transcript names none" in prompt
+    assert "Do not fill optional slots." in build_classification_prompt(_window(), CANDIDATES)
+
+
 def test_prompt_contains_only_transcript_and_candidate_identity_not_similarity_or_source_metadata():
     from engine.signals.prompts import build_classification_prompt
 
@@ -252,7 +265,7 @@ def test_two_stage_classifier_locks_primary_and_excludes_hierarchy_relatives():
     assert "Structural allowance does not mean a secondary is relevant" in (
         generator.prompts[1]
     )
-    assert "Reject incidental topics, leave unsupported slots empty, and retain genuinely substantial secondary topics" in (
+    assert "Reject incidental topics, leave unsupported secondary slots empty, and retain genuinely substantial secondary topics" in (
         generator.prompts[1]
     )
 
