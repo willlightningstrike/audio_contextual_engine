@@ -20,6 +20,9 @@ from engine.transcribe.types import AnalysisWindow
 
 MAX_ALTERNATIVE_PRIMARIES = 2
 MAX_VERIFIER_CALLS = 5
+# Verifier candidates and competitors: the best eligible rows of a deeper ranking,
+# so excluded Music rows cannot crowd every eligible alternative out.
+MAX_ELIGIBLE_CANDIDATES = 15
 VerifierProgress = Callable[[TimeRange, int, int, Literal["starting", "completed"]], None]
 
 
@@ -67,7 +70,7 @@ def verify_window_topics(
     # Recognizable Music IDs are excluded even when not present in retrieval.
     if proposed_id and proposed_id not in by_id and proposed_id not in {"338", "650"}:
         return VerifiedTopics(error_code="INVALID_VERIFIER_INPUT")
-    eligible = [item for item in ranked if transcript_candidate(item)]
+    eligible = [item for item in ranked if transcript_candidate(item)][:MAX_ELIGIBLE_CANDIDATES]
     eligible_by_id = {item.taxonomy_id: item for item in eligible}
     secondary_ids = payload.secondary_categories if payload else ()
     if any(id not in by_id and id not in {"338", "650"} for id in secondary_ids):

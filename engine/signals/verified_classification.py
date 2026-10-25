@@ -16,6 +16,10 @@ from engine.signals.topic_verify import VERIFIER_POLICY, VerifierAttempt
 from engine.signals.verified_topics import VerifierProgress, verify_window_topics
 from engine.transcribe.types import TranscriptionRun
 
+CLASSIFIER_TOP_K = 15
+# Deep enough that 15 eligible rows remain after the 35 excluded Music rows in 3.1.
+VERIFIER_TOP_K = 50
+
 
 def classify_and_verify_transcription_run(
     run: TranscriptionRun,
@@ -33,11 +37,12 @@ def classify_and_verify_transcription_run(
     results: list[ClassificationResult] = []
     for window in analysis_windows_from_run(run):
         token.raise_if_cancelled()
-        candidates = tuple(taxonomy_index.shortlist(
-            " ".join(segment.text for segment in window.segments), top_k=15, token=token,
+        ranked = tuple(taxonomy_index.shortlist(
+            " ".join(segment.text for segment in window.segments), top_k=VERIFIER_TOP_K, token=token,
         ))
+        candidates = ranked[:CLASSIFIER_TOP_K]
         token.raise_if_cancelled()
-        candidate_checkpoint(CandidateRecord(time_range=window.time_range, candidates=candidates))
+        candidate_checkpoint(CandidateRecord(time_range=window.time_range, candidates=ranked))
         token.raise_if_cancelled()
         proposed = classify_window(
             window, candidates, generator=generator, token=token,
@@ -46,7 +51,7 @@ def classify_and_verify_transcription_run(
         result = proposed
         if proposed.error_code in {None, "INSUFFICIENT_TOPIC_EVIDENCE"}:
             verified = verify_window_topics(
-                window, proposed, candidates, generator=generator, token=token,
+                window, proposed, ranked, generator=generator, token=token,
                 checkpoint=verifier_attempt_checkpoint, on_verifier_progress=on_verifier_progress,
             )
             token.raise_if_cancelled()
@@ -62,8 +67,12 @@ def classify_and_verify_transcription_run(
                 })
             else:
                 if proposed.payload is None:
+                    locked = candidates + tuple(
+                        item for item in ranked[CLASSIFIER_TOP_K:]
+                        if item.taxonomy_id == verified.primary_category
+                    )
                     result = classify_locked_payload(
-                        window, candidates, verified.primary_category,
+                        window, locked, verified.primary_category,
                         generator=generator, token=token, prior_attempts=proposed.attempts,
                         checkpoint=classification_attempt_checkpoint,
                     )

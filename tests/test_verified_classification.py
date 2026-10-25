@@ -44,13 +44,14 @@ class Generator:
         return value if isinstance(value, GenerationResult) else GenerationResult(raw=value, finish_reason="stop", seconds=0.1, token_count=4)
 
 
-def execute(responses, *, token=None, verifier_checkpoint=None, result_checkpoint=None, on_progress=None):
+def execute(responses, *, token=None, verifier_checkpoint=None, result_checkpoint=None, on_progress=None, ranked=CANDIDATES):
     from engine.signals.verified_classification import classify_and_verify_transcription_run
 
     class Index:
         def shortlist(self, text, *, top_k, token):
             assert text == "camera settings Canon camera"
-            return CANDIDATES
+            assert top_k == 50
+            return ranked
 
     segments = tuple(TranscriptSegment(time_range=TimeRange(start_seconds=i, end_seconds=i+1), text=text, confidence=0.9, language="en") for i, text in enumerate(("camera settings", "Canon camera")))
     run = TranscriptionRun(windows=(WindowResult(time_range=TimeRange(start_seconds=0, end_seconds=2), segments=segments, language="en"),), status="ready")
@@ -95,6 +96,28 @@ def test_classifier_abstention_recovers_with_real_locked_payload_attempt():
     assert result.category_citations == (CategoryCitation(category_id="633", segment_indices=(0,1)),)
     assert [attempt.stage for attempt in attempts] == ["primary", "payload"]
     assert attempts[-1].raw == payload("633") and len(verified) == 1
+
+
+MUSIC_THEN_ELIGIBLE = tuple(
+    TaxonomyCandidate(f"m{i}", f"m{i}", ("Entertainment", "Music", f"m{i}"), 0.6) for i in range(15)
+) + (TaxonomyCandidate("156", "Musical", ("Genres", "Musical"), 0.5),)
+
+
+def test_classifier_sees_top_fifteen_and_verifier_reaches_deeper_eligible():
+    result, fake, _, verified, _, _ = execute(
+        [primary("m0"), payload("m0"), verdict("156")], ranked=MUSIC_THEN_ELIGIBLE,
+    )
+    assert '"156"' not in fake.prompts[0] and '"m14"' in fake.prompts[0]
+    assert result.payload.primary_category == "156" and len(verified) == 1
+
+
+def test_locked_payload_accepts_primary_found_beyond_classifier_shortlist():
+    result, fake, attempts, _, _, _ = execute(
+        [primary("__INSUFFICIENT_TOPIC_EVIDENCE__"), verdict("156"), payload("156")],
+        ranked=MUSIC_THEN_ELIGIBLE,
+    )
+    assert result.payload.primary_category == "156"
+    assert [attempt.stage for attempt in attempts] == ["primary", "payload"]
 
 
 @pytest.mark.parametrize("response,code", [("broken","INVALID_VERIFIER_OUTPUT"), (GenerationResult(raw="partial", finish_reason="length", seconds=0.1, token_count=4),"INCOMPLETE_GENERATION"), (RuntimeError("broken"),"GENERATION_ERROR")])

@@ -187,3 +187,12 @@ def test_technical_call_clears_categories(window, response, code):
     assert len(saved) == len(fake.prompts) == 2
     if isinstance(response, GenerationResult):
         assert saved[-1].raw == "partial" and saved[-1].finish_reason == "length"
+
+
+def test_deep_ranking_caps_verifier_pool_at_fifteen_eligible(window):
+    music = [candidate(f"m{i}", ("Entertainment", "Music", f"m{i}")) for i in range(20)]
+    eligible = [candidate(f"e{i}") for i in range(20)]
+    result, fake, _ = run(window, proposal(window, primary="m0"), [verdict("e0")], music + eligible)
+    assert result.primary_category == "e0"
+    competitors = json.loads(fake.prompts[0][fake.prompts[0].index("{"):])["competitors"]
+    assert [item["category_id"] for item in competitors] == [f"e{i}" for i in range(1, 15)]
