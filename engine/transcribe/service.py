@@ -70,12 +70,24 @@ def _rebase_segments(
     return converted
 
 
+# Normalised audio is 16 kHz, so a window lasts a whole number of samples.
+_SAMPLE_RATE = 16_000
+
+
+def _window_seconds(window: TimeRange) -> float:
+    """Window length on the sample grid, free of float subtraction noise.
+
+    80.6 - 60.0 is 20.599999999999994, but the 20.6 s slice ends at 20.6.
+    """
+    return round((window.end_seconds - window.start_seconds) * _SAMPLE_RATE) / _SAMPLE_RATE
+
+
 def _rebase_segments_with_corrections(
     segments: object, source_window: TimeRange
 ) -> tuple[tuple[TranscriptSegment, ...], tuple[TimestampCorrection, ...]]:
     if not isinstance(segments, (list, tuple)):
         raise ValueError("ASR segments must be a sequence")
-    local_duration = source_window.end_seconds - source_window.start_seconds
+    local_duration = _window_seconds(source_window)
     converted: list[TranscriptSegment] = []
     corrections: list[TimestampCorrection] = []
     previous_end = 0.0
@@ -117,7 +129,8 @@ def _rebase_segments_with_corrections(
             TranscriptSegment(
                 time_range=TimeRange(
                     start_seconds=source_window.start_seconds + start,
-                    end_seconds=source_window.start_seconds + end,
+                    # A local end on the window's last sample maps to its exact end.
+                    end_seconds=min(source_window.start_seconds + end, source_window.end_seconds),
                 ),
                 text=segment.text,
                 confidence=segment.confidence,
@@ -187,8 +200,7 @@ def transcribe_media(
                     failure_reason="vocal_presence_uncertain",
                 )
             else:
-                duration = source_window.end_seconds - source_window.start_seconds
-                local_window = TimeRange(start_seconds=0, end_seconds=duration)
+                local_window = TimeRange(start_seconds=0, end_seconds=_window_seconds(source_window))
                 invalid_language_probabilities = False
                 try:
                     failure_stage = _LANGUAGE_DETECTION

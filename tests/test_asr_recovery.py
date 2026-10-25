@@ -670,3 +670,20 @@ def test_valid_unconfirmed_language_maps_are_not_diagnosed_as_malformed(
 
     assert saved[0].error_code == NON_ENGLISH_OR_UNCONFIRMED_LANGUAGE
     assert saved[0].failure_reason == "non_english_or_unconfirmed_language"
+
+
+def test_final_segment_ending_at_the_window_end_survives_float_subtraction():
+    # Regression: 80.6 - 60.0 == 20.599999999999994, so a segment
+    # ending at the real 20.6 s end of the last slice was rejected.
+    window = TimeRange(start_seconds=60.0, end_seconds=80.6)
+    segment = TranscriptSegment(
+        time_range=TimeRange(start_seconds=18.0, end_seconds=20.6),
+        text="last words", confidence=0.9, language="en",
+    )
+    (rebased,), _ = _rebase_segments_with_corrections([segment], window)
+    assert rebased.time_range.start_seconds == 78.0
+    assert rebased.time_range.end_seconds == 80.6
+
+    beyond = segment.model_copy(update={"time_range": TimeRange(start_seconds=18.0, end_seconds=20.61)})
+    with pytest.raises(ValueError, match="invalid for the bounded window"):
+        _rebase_segments_with_corrections([beyond], window)
