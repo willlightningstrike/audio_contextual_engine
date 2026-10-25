@@ -273,9 +273,18 @@ A successful job exports an [OpenRTB 2.6](https://iabtechlab.com/standards/openr
 | Segment | Meaning |
 | --- | --- |
 | `primary_category`, `secondary_category` | Category roles, in the same order as `cat` |
-| `topic_structure` | `single`, `parent_rollup` (broader parent topic), `multi_topic` (co-equal topics), or `declared_music` (Music chosen as the content context) |
+| `topic_structure` | How the categories were chosen; see the table below |
 | `coverage` | `complete`, or `partial_technical_failures` if some ranges failed and were left out |
 | `entity_<type>` | Named entities found in the transcript |
+
+Each `topic_structure` value changes how to read `cat`:
+
+| `topic_structure` | How the categories were chosen | How to read `cat` |
+| --- | --- | --- |
+| `single` | One category's cited speech covers more than half of the transcript time and at least a quarter of the audio. | `cat[0]` is the main topic. Any secondaries are smaller verified topics, none a parent or child of an earlier category. |
+| `parent_rollup` | No single category dominates, but related subcategories together pass the same thresholds. | `cat[0]` is their most specific shared parent, broader than any one subtopic. Secondaries are read as for `single`. |
+| `multi_topic` | Two or three topics, none an ancestor of another, each cover at least 20% of the transcript time and together pass the `single` thresholds. | The listed categories are co-equal. They are ordered by support only, so `cat[0]` is not the main topic. |
+| `declared_music` | The content context was set to Music. | `cat[0]` is Music (338), followed by Music Video (650) for video files. Both were declared by you, not detected. Any further category was verified from the transcript. |
 
 Keyword and entity values are model outputs, not calibrated probabilities. Only the categories are independently verified. Sentiment is also unverified, so it is shown in the app but left out of the export.
 
