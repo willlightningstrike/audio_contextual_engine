@@ -14,10 +14,6 @@ from engine.ortb.validate import validate_content
 _SAFE_SEGMENT_ID = re.compile(r"[^a-zA-Z0-9_-]+")
 
 
-def _score_text(score: float) -> str:
-    return repr(score)
-
-
 def _entity_segment_id(entity_type: str) -> str:
     normalized = _SAFE_SEGMENT_ID.sub("_", entity_type.strip().lower()).strip("_-")
     if not normalized:
@@ -74,16 +70,10 @@ def build_content(
     keywords = list(dict.fromkeys(item.term for item in aggregate.keywords))
     if keywords:
         content["kwarray"] = keywords
-    segments = []
-    if aggregate.sentiment is not None:
-        segments.append({
-            "id": "sentiment",
-            "value": f"{aggregate.sentiment.label}:{_score_text(aggregate.sentiment.score)}",
-        })
-    segments.extend(
+    segments = [
         {"id": _entity_segment_id(entity.type), "value": entity.text}
         for entity in aggregate.entities
-    )
+    ]
     segments.append({"id": "primary_category", "value": aggregate.primary_category})
     segments.extend(
         {"id": "secondary_category", "value": category}
@@ -93,7 +83,6 @@ def build_content(
         # Consumers need to know when categories are co-equal or rolled up, and
         # when technically failed ranges were excluded from the decision.
         segments.extend([
-            {"id": "aggregation_policy", "value": aggregate.policy_version},
             {"id": "topic_structure", "value": aggregate.topic_structure},
             {"id": "coverage", "value": (
                 "partial_technical_failures" if aggregate.coverage.failed_ranges else "complete"

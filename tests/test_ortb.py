@@ -151,14 +151,14 @@ def test_validator_rejects_content_taxonomy_3_0_cattax():
         validate_content({"cat": ["80DV8O"], "cattax": 7, "context": 6}, taxonomy=load_taxonomy())
 
 
-def test_negative_sentiment_segment_preserves_its_sign():
+def test_sentiment_and_aggregation_policy_are_not_exported():
     from engine.ortb.build import build_content
 
     content = build_content(
         aggregate(), metadata=SourceMetadata(), context=ContentContext.MUSIC, duration_seconds=10
     )
-    segments = content["data"][0]["segment"]
-    assert {item["id"]: item["value"] for item in segments}["sentiment"] == "negative:-0.6"
+    ids = {item["id"] for item in content["data"][0]["segment"]}
+    assert not ids & {"sentiment", "aggregation_policy"}
 
 
 @pytest.mark.parametrize(
@@ -205,7 +205,6 @@ def test_v3_content_discloses_topic_structure_and_coverage(structure, failed, co
         metadata=SourceMetadata(), context=ContentContext.VIDEO, duration_seconds=60.0,
     )
     segments = {item["id"]: item["value"] for item in content["data"][0]["segment"]}
-    assert segments["aggregation_policy"] == "english-audio-aggregation-v3"
     assert segments["topic_structure"] == structure
     assert segments["coverage"] == coverage
     assert content["cat"] == ["80DV8O", "222"]

@@ -82,7 +82,7 @@ Path / upload / folder batch
 ### 1.3 Output
 
 - One primary IAB 3.0 category and zero to two secondary categories.
-- Keywords, named entities and sentiment.
+- Keywords and named entities. Whole-file sentiment is shown in the browser but not exported.
 - An evidence timeline with cited transcript time ranges.
 - A coverage summary of analysed, failed and excluded ranges.
 - Fields compatible with the OpenRTB content object (`cattax=9`), validated before export.

@@ -6,7 +6,6 @@
     {
       "name": "contextual_engine",
       "segment": [
-        {"id": "sentiment", "value": "neutral:0.0"},
         {"id": "entity_artist", "value": "Adele"},
         {"id": "primary_category", "value": "338"}
       ]

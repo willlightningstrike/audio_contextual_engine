@@ -26,7 +26,7 @@ Startup checks the host, binaries, package pins, forbidden frameworks, writable 
 - Submit a local path, browser upload, or folder batch. Uploads default to a 1 GiB limit; local-path inputs avoid that upload limit.
 - Screen speech/singing eligibility, detect language, and transcribe eligible English audio with timestamps.
 - Retrieve IAB candidates, classify transcript windows, and verify category support against cited transcript segments.
-- Aggregate a primary category and up to two optional secondaries, keywords, named entities, sentiment, evidence timelines, and OpenRTB-compatible fields (`cattax=9`).
+- Aggregate a primary category and up to two optional secondaries, keywords, named entities, evidence timelines, and OpenRTB-compatible fields (`cattax=9`). Sentiment is shown in the browser but not exported, because the verifier does not check it.
 - Display saved stage/window progress, completed verifier calls, partial transcripts, range diagnostics, success, insufficient evidence, technical failure, and cancellation.
 - Cancel at cooperative checkpoints and recover saved state. SSE delivers revisions; the browser falls back to polling after repeated live-update failures.
 - Copy/download identical server-validated JSON bytes after successful completion. Unsuccessful jobs retain diagnostics and cannot publish a successful export.

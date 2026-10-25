@@ -827,7 +827,8 @@ const base = JSON.parse(process.argv[2]);
 vm.runInContext('state.itemKind = "job"; state.itemId = "saved-job"', context);
 const get = id => document.getElementById(id);
 call('renderSnapshot', base, true);
-const complete = {summary: get('summary-content').textContent, excluded: get('excluded-ranges').textContent};
+const complete = {summary: get('summary-content').textContent, excluded: get('excluded-ranges').textContent,
+  sentiment: get('sentiment-content').textContent};
 call('renderSnapshot', {
   ...base, status: 'failed', error: 'TECHNICAL_FAILURE_SHARE_EXCEEDED', ortb_content: null,
   progress: {...base.progress, revision: 9, stage: 'failed'},
@@ -881,6 +882,7 @@ def test_declared_music_result_says_the_label_was_not_detected() -> None:
             "name": "contextual_engine",
             "segment": [{"id": "topic_structure", "value": "declared_music"}],
         }]},
+        "sentiment": {"label": "positive", "score": 0.8},
         "text_timeline": [], "topic_abstentions": [], "transcript": [],
         "coverage": {
             "total_windows": 1, "successful_windows": 1, "transcribed_seconds": 10.0,
@@ -891,4 +893,6 @@ def test_declared_music_result_says_the_label_was_not_detected() -> None:
         ["node", "-e", _V3_SCRIPT, str(STATIC / "app.js"), json.dumps(snapshot)],
         capture_output=True, text=True, check=True,
     )
-    assert "Declared: Music comes from the Music content context you chose" in json.loads(result.stdout)["complete"]["summary"]
+    rendered = json.loads(result.stdout)["complete"]
+    assert "Declared: Music comes from the Music content context you chose" in rendered["summary"]
+    assert rendered["sentiment"] == "positiveSigned score 0.8"

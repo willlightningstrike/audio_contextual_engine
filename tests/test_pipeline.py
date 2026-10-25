@@ -424,6 +424,22 @@ def test_fully_supported_audio_exports_v2_cattax_9(pipeline_fixture):
     assert store.load_analysis_diagnostics(job_id)[-1]["payload"]["outcome"] == "eligible"
 
 
+def test_sentiment_reaches_the_ui_snapshot_but_not_the_export(pipeline_fixture):
+    from engine.web.snapshots import job_snapshot
+
+    pipeline, store, job_id = pipeline_fixture(
+        audio_seconds=10, transcript_segments=((0, 8, "camera review"),)
+    )
+    pipeline.run(job_id, CancellationToken())
+
+    saved = store.load(job_id)
+    assert all(item["id"] != "sentiment" for item in saved.ortb_content["data"][0]["segment"])
+    assert job_snapshot(store, saved)["sentiment"] == {
+        "label": "neutral", "score": 0.0,
+        "aggregation_convention": "duration_weighted_signed_score_v1",
+    }
+
+
 def test_all_abstain_fails_with_semantic_policy(pipeline_fixture):
     pipeline, store, job_id = pipeline_fixture(
         model_outputs=({"primary_category": "__INSUFFICIENT_TOPIC_EVIDENCE__"},)
@@ -463,7 +479,7 @@ def test_declared_music_publishes_music_when_every_window_abstains(pipeline_fixt
     assert store.load_analysis_diagnostics(job_id)[-1]["payload"]["outcome"] == "insufficient"
 
 
-def test_declared_music_video_adds_music_video_and_keeps_transcript_signals(pipeline_fixture):
+def test_declared_music_video_adds_music_video(pipeline_fixture):
     pipeline, store, job_id = pipeline_fixture(
         requested_context=ContentContext.MUSIC, container_kind=ContainerKind.VIDEO,
     )
@@ -472,7 +488,6 @@ def test_declared_music_video_adds_music_video_and_keeps_transcript_signals(pipe
     saved = store.load(job_id)
     assert saved.status is JobStage.COMPLETE
     assert list(saved.ortb_content["cat"]) == ["338", "650"]
-    assert _segments(saved.ortb_content)["sentiment"] == "neutral:0.0"
 
 
 def test_declared_music_keeps_a_verified_transcript_topic_as_secondary(pipeline_fixture):

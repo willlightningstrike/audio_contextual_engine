@@ -85,8 +85,6 @@ def aggregate(
     entity_mentions: dict[tuple[str, str], int] = defaultdict(int)
     entity_support: dict[tuple[str, str], float] = defaultdict(float)
     entity_display: dict[tuple[str, str], set[tuple[str, str]]] = defaultdict(set)
-    weighted_sentiment = 0.0
-    sentiment_duration = 0.0
 
     for entry in ordered:
         evidence_seconds = _duration(entry.evidence_ranges)
@@ -114,9 +112,6 @@ def aggregate(
             seen_entities.add(key)
         for key in seen_entities:
             entity_support[key] += evidence_seconds
-
-        weighted_sentiment += entry.payload.sentiment.score * evidence_seconds
-        sentiment_duration += evidence_seconds
 
     if not primary_support:
         raise ValueError("no usable primary-category support")
@@ -158,9 +153,6 @@ def aggregate(
         )
         for key in sorted(entity_mentions, key=lambda item: (-entity_mentions[item], item))[:50]
     )
-    score = weighted_sentiment / sentiment_duration
-    score = max(-1.0, min(1.0, score))
-    label = "negative" if score < 0 else "positive" if score > 0 else "neutral"
     return AggregateResult(
         primary_category=primary_id,
         secondary_categories=tuple(secondaries),
@@ -174,9 +166,24 @@ def aggregate(
         ),
         keywords=keywords,
         entities=entities,
-        sentiment=AggregateSentiment(label=label, score=score),
+        sentiment=whole_file_sentiment(ordered),
         coverage=coverage,
     )
+
+
+def whole_file_sentiment(entries: Sequence[TextTimelineEntry]) -> AggregateSentiment | None:
+    """Evidence-duration-weighted mean of the window sentiment scores."""
+    weighted = 0.0
+    duration = 0.0
+    for entry in sorted(entries, key=_unit_key):
+        seconds = _duration(entry.evidence_ranges)
+        weighted += entry.payload.sentiment.score * seconds
+        duration += seconds
+    if duration <= 0:
+        return None
+    score = max(-1.0, min(1.0, weighted / duration))
+    label = "negative" if score < 0 else "positive" if score > 0 else "neutral"
+    return AggregateSentiment(label=label, score=score)
 
 
 def aggregate_topic_sufficient(

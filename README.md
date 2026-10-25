@@ -36,7 +36,7 @@ Give it a podcast, a product review, a TV programme, a tutorial, or a music vide
 
 - **One primary topic** and **up to two secondary topics**, as IAB Content Taxonomy 3.1 categories (for example *Men's Jewelry and Watches*, or *Sports* plus *Travel*).
 - **How the topics were chosen:** one dominant topic, a broader parent topic covering several related subtopics, or two or three co-equal topics.
-- **Keywords, named entities, and overall sentiment** taken from the transcript.
+- **Keywords and named entities** taken from the transcript, plus overall sentiment shown in the app (not exported).
 - **A time-coded transcript and evidence timeline** showing which parts of the speech support each topic.
 - **A coverage report** listing any ranges it excluded (music, silence, non-English speech) or could not process.
 
@@ -260,11 +260,9 @@ A successful job exports an [OpenRTB 2.6](https://iabtechlab.com/standards/openr
   "data": [{
     "name": "contextual_engine",
     "segment": [
-      {"id": "sentiment", "value": "neutral:0.0"},
       {"id": "entity_product", "value": "Tank Louis"},
       {"id": "entity_person", "value": "Mike Nouveau"},
       {"id": "primary_category", "value": "581"},
-      {"id": "aggregation_policy", "value": "english-audio-aggregation-v3"},
       {"id": "topic_structure", "value": "single"},
       {"id": "coverage", "value": "complete"}
     ]
@@ -277,10 +275,9 @@ A successful job exports an [OpenRTB 2.6](https://iabtechlab.com/standards/openr
 | `primary_category`, `secondary_category` | Category roles, in the same order as `cat` |
 | `topic_structure` | `single`, `parent_rollup` (broader parent topic), `multi_topic` (co-equal topics), or `declared_music` (Music chosen as the content context) |
 | `coverage` | `complete`, or `partial_technical_failures` if some ranges failed and were left out |
-| `sentiment` | `label:score`, with the score from −1 to 1. Omitted from a `declared_music` result with no verified transcript evidence |
 | `entity_<type>` | Named entities found in the transcript |
 
-Keyword, entity, and sentiment values are model outputs, not calibrated probabilities. Only the categories are independently verified.
+Keyword and entity values are model outputs, not calibrated probabilities. Only the categories are independently verified. Sentiment is also unverified, so it is shown in the app but left out of the export.
 
 ## HTTP API
 

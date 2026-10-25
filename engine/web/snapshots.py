@@ -5,8 +5,11 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from pydantic import ValidationError
+
 from engine.domain import JobRecord, TimeRange
 from engine.lifecycle import JobStage
+from engine.signals.aggregate import whole_file_sentiment
 from engine.signals.result_types import AudioTranscriptProvenance, TextTimelineEntry
 from engine.signals.text_types import CategoryCitation, ClassificationPayload
 from engine.signals.topic_sufficiency import TopicDecision
@@ -46,6 +49,21 @@ def _union_ranges(ranges: tuple[TimeRange, ...]) -> tuple[TimeRange, ...]:
         else:
             merged.append(item)
     return tuple(merged)
+
+
+def _sentiment(record: JobRecord) -> dict[str, Any] | None:
+    """Whole-file sentiment for the UI only; it is not part of the export."""
+    if record.status is not JobStage.COMPLETE:
+        return None
+    try:
+        entries = tuple(
+            TextTimelineEntry.model_validate_json(json.dumps(entry, allow_nan=False))
+            for entry in record.model_dump(mode="json")["text_timeline"]
+        )
+    except ValidationError:
+        return None
+    value = whole_file_sentiment(entries)
+    return value.model_dump(mode="json") if value else None
 
 
 def job_snapshot(store: object, record: JobRecord) -> dict[str, Any]:
@@ -202,6 +220,7 @@ def job_snapshot(store: object, record: JobRecord) -> dict[str, Any]:
     result["text_timeline"] = projected_timeline
     result["topic_policy"] = policies[-1].model_dump(mode="json") if policies else None
     result["topic_abstentions"] = abstained
+    result["sentiment"] = _sentiment(record)
     result["verification_windows"] = verification_windows
     result["coverage"] = {
         "total_windows": len(windows),

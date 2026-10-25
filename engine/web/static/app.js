@@ -448,13 +448,13 @@ function renderDetails(snapshot) {
     entities.append(list);
   } else entities.append(node("p", "muted", "No named entities available."));
 
-  const sentiment = segmentsFrom(content).find((item) => item.id === "sentiment");
+  // Sentiment is shown here but deliberately left out of the JSON export.
+  const sentiment = snapshot.sentiment;
   const sentimentTarget = byId("sentiment-content");
   sentimentTarget.replaceChildren();
   if (sentiment) {
-    const [label, score] = String(sentiment.value).split(":", 2);
-    sentimentTarget.append(node("p", "sentiment-value", label || "Not available"));
-    if (score !== undefined) sentimentTarget.append(node("p", "sentiment-score", `Signed score ${score}`));
+    sentimentTarget.append(node("p", "sentiment-value", sentiment.label));
+    sentimentTarget.append(node("p", "sentiment-score", `Signed score ${sentiment.score}`));
   } else sentimentTarget.append(node("p", "muted", "No sentiment available."));
 }
 
