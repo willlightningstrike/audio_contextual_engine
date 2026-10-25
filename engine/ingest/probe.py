@@ -34,7 +34,8 @@ class MediaProbe:
     container_kind: ContainerKind
     audio_streams: tuple[AudioStream, ...]
     default_audio_stream: int | None
-    duration_seconds: float
+    # None when the container omits it (live-recorded WebM); extraction measures the audio.
+    duration_seconds: float | None
     source_metadata: SourceMetadata
 
     @property
@@ -83,7 +84,10 @@ def parse_probe(payload: Mapping[str, object]) -> MediaProbe:
     if not isinstance(raw_streams, Sequence) or isinstance(raw_streams, (str, bytes)):
         raise InvalidProbe("ffprobe streams must be an array")
 
-    duration_seconds = _positive_float(format_data.get("duration"), "format.duration")
+    raw_duration = format_data.get("duration")
+    duration_seconds = (
+        None if raw_duration is None else _positive_float(raw_duration, "format.duration")
+    )
     tags = format_data.get("tags", {})
     tags = _as_mapping(tags, "format.tags")
     title = tags.get("title")

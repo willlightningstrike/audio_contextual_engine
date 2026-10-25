@@ -242,3 +242,13 @@ def test_probe_cleanup_reaps_after_a_second_communicate_error():
     assert process.terminated
     assert process.killed
     assert process.waits == 2
+
+
+def test_missing_container_duration_is_unknown_not_invalid():
+    data = fixture("audio_only.json")
+    del data["format"]["duration"]  # type: ignore[union-attr]
+
+    probe = parse_probe(data)
+
+    assert probe.duration_seconds is None
+    assert probe.source_metadata.duration_seconds is None

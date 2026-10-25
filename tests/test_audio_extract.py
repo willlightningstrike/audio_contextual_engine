@@ -492,3 +492,24 @@ def test_unreadable_normalized_audio_is_not_promoted(tmp_path: Path):
 
     assert not (tmp_path / "audio.partial.wav").exists()
     assert not (tmp_path / "audio.wav").exists()
+
+
+def test_webm_without_container_duration_is_prepared_from_its_audio(tmp_path: Path, ffmpeg_tools: None):
+    # Regression: a live-recorded WebM omits format.duration, and the
+    # probe rejected it before extraction could measure the real audio.
+    source = tmp_path / "recording.webm"
+    subprocess.run(
+        ["ffmpeg", "-nostdin", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=2",
+         "-c:a", "libopus", "-live", "1", str(source)],
+        check=True,
+    )
+    probed = json.loads(subprocess.run(
+        ["ffprobe", "-v", "error", "-show_format", "-of", "json", str(source)],
+        check=True, capture_output=True, text=True,
+    ).stdout)
+    assert "duration" not in probed["format"]
+
+    prepared = prepare_audio(source, tmp_path / "work", None, None, CancellationToken(), lambda update: None)
+
+    assert prepared.duration_seconds == pytest.approx(2.0, abs=0.05)
+    assert prepared.source_metadata.duration_seconds is None
