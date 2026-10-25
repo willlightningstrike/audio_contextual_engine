@@ -502,3 +502,17 @@ def test_taxonomy_route_returns_names_and_paths_for_rendering_category_ids(api) 
         "name": "Cameras and Camcorders",
         "path": ["Technology & Computing", "Consumer Electronics", "Cameras and Camcorders"],
     }
+
+
+def test_dot_prefixed_upload_can_start_a_job(api) -> None:
+    # Regression: staging accepted ".speech.wav", but lookup hid every
+    # dot-prefixed name, so the accepted upload could never start.
+    client, store, runner, _, _ = api
+    uploaded = client.post("/api/uploads?filename=.speech.wav", content=b"1234")
+    assert uploaded.status_code == 201
+
+    created = client.post("/api/jobs/upload", json={"upload_id": uploaded.json()["upload_id"]})
+
+    assert created.status_code == 202
+    assert store.load(created.json()["id"]).request.source.name == ".speech.wav"
+    assert runner.enqueued == [created.json()["id"]]

@@ -75,7 +75,11 @@ class UploadManager:
 
     @staticmethod
     def _media_file(directory: Path) -> Path:
-        names = [name for name in os.listdir(directory) if not name.startswith(".")]
+        # Skip only staging's own files, not user names that start with a dot.
+        names = [
+            name for name in os.listdir(directory)
+            if name != ".claimed" and not (name.startswith(".") and name.endswith(".partial"))
+        ]
         if len(names) != 1:
             raise UploadError("upload is unavailable")
         source = directory / names[0]
