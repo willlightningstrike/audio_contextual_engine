@@ -64,10 +64,14 @@ def _runtime(streams, events):
         events.append(("stream_generate", args, kwargs))
         return streams.pop(0)
 
+    def get_processor(backend, wrapped, schema, *, whitespace_pattern):
+        events.append(("whitespace_pattern", whitespace_pattern))
+        return Processor()
+
     return SimpleNamespace(
         load=lambda path, lazy: (model, Tokenizer()),
         wrap=lambda loaded_model, tokenizer: (loaded_model, tokenizer),
-        get_processor=lambda backend, wrapped, schema: Processor(),
+        get_processor=get_processor,
         make_sampler=lambda temperature: ("sampler", temperature),
         stream_generate=stream_generate,
         eval=lambda tokens: events.append(("eval", tokens)),
@@ -99,6 +103,10 @@ def test_adapter_builds_a_fresh_schema_processor_uses_greedy_streaming_and_mater
     assert first.finish_reason == "stop"
     assert first.token_count == 2
     assert second.raw == '{"ok":false}'
+    # Compact JSON, so an extra space after "[" cannot force an empty array.
+    assert [event for event in events if event[0] == "whitespace_pattern"] == [
+        ("whitespace_pattern", ""), ("whitespace_pattern", "")
+    ]
     calls = [event for event in events if event[0] == "stream_generate"]
     assert calls[0][2]["max_tokens"] == 1024
     assert calls[0][2]["sampler"] == ("sampler", 0.0)

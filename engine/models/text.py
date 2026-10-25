@@ -84,8 +84,10 @@ class MlxConstrainedTextAdapter:
             raise RuntimeError("text adapter has been released")
 
         token.raise_if_cancelled()
+        # Compact JSON: the default optional-space rule lets an indentation space
+        # after "[" commit the model to an empty array.
         inner_processor = self._runtime.get_processor(
-            "outlines_core", self._wrapped, json.dumps(schema)
+            "outlines_core", self._wrapped, json.dumps(schema), whitespace_pattern=""
         )
 
         def processor(tokens: Any, logits: Any) -> Any:
