@@ -19,7 +19,10 @@ from engine.transcribe.types import TranscriptionRun
 
 TopicStructure = Literal["single", "parent_rollup", "multi_topic"]
 
-# english-audio-aggregation-v3 topic rules (shares of usable transcript time T).
+# english-audio-aggregation-v3/v4 topic rules (shares of usable transcript time T).
+# v3 measures every share on cited speech. v4 measures the shares on the speech
+# of windows whose verified primary is the category, and keeps the audio floor
+# on cited speech, so partial citations of a consistent topic still count.
 PRIMARY_TRANSCRIPT_SHARE = 0.50  # strictly greater than
 PRIMARY_AUDIO_SHARE = 0.25
 MULTI_TOPIC_MIN_SHARE = 0.20
@@ -29,7 +32,8 @@ class TopicDecision(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True, allow_inf_nan=False)
 
     policy_version: Literal[
-        "english-audio-aggregation-v2", "english-audio-aggregation-v3"
+        "english-audio-aggregation-v2", "english-audio-aggregation-v3",
+        "english-audio-aggregation-v4",
     ] = "english-audio-aggregation-v2"
     outcome: Literal["eligible", "insufficient"]
     primary_category: str | None
@@ -41,14 +45,18 @@ class TopicDecision(BaseModel):
     topic_structure: TopicStructure | None = None
     secondary_categories: tuple[str, ...] = Field(default=(), max_length=2)
     selected_support_seconds: tuple[tuple[str, float], ...] = ()
+    # v4 only: speech time of the windows whose verified primary is each category.
+    primary_window_support_seconds: tuple[tuple[str, float], ...] = ()
 
     @model_serializer(mode="wrap")
-    def _omit_v3_fields_from_v2(self, handler):
-        # Saved v2 decisions keep their original serialized form.
+    def _omit_later_fields(self, handler):
+        # Saved v2 and v3 decisions keep their original serialized form.
         data = handler(self)
         if self.policy_version == "english-audio-aggregation-v2":
             for key in ("topic_structure", "secondary_categories", "selected_support_seconds"):
                 data.pop(key, None)
+        if self.policy_version != "english-audio-aggregation-v4":
+            data.pop("primary_window_support_seconds", None)
         return data
 
     @model_validator(mode="after")
@@ -64,6 +72,8 @@ class TopicDecision(BaseModel):
                 raise ValueError("support categories must be unique non-blank IDs")
             if any(seconds <= 0 for _, seconds in support):
                 raise ValueError("support durations must be positive")
+        if self.primary_window_support_seconds and self.policy_version != "english-audio-aggregation-v4":
+            raise ValueError("only v4 decisions record window support")
         if self.policy_version == "english-audio-aggregation-v2":
             if self.topic_structure or self.secondary_categories or self.selected_support_seconds:
                 raise ValueError("v2 decisions do not record v3 topic fields")
@@ -200,8 +210,11 @@ def _role_ranges(
     *,
     audio_seconds: float,
     skip_technical_failures: bool,
-) -> tuple[list[TimeRange], dict[str, list[TimeRange]], dict[str, list[TimeRange]]]:
-    """Collect cited role ranges, validating the same invariants as v2."""
+) -> tuple[
+    list[TimeRange], dict[str, list[TimeRange]], dict[str, list[TimeRange]],
+    dict[str, list[TimeRange]],
+]:
+    """Collect cited role ranges and each primary's window speech, validating v2's invariants."""
     if (
         isinstance(audio_seconds, bool)
         or not isinstance(audio_seconds, (int, float))
@@ -217,6 +230,7 @@ def _role_ranges(
     transcript_ranges: list[TimeRange] = []
     primary_ranges: dict[str, list[TimeRange]] = defaultdict(list)
     secondary_ranges: dict[str, list[TimeRange]] = defaultdict(list)
+    window_ranges: dict[str, list[TimeRange]] = defaultdict(list)
     for window, result in zip(windows, classifications):
         technical = result.payload is None and result.error_code != "INSUFFICIENT_TOPIC_EVIDENCE"
         if technical and skip_technical_failures:
@@ -241,6 +255,9 @@ def _role_ranges(
         cited_ids = tuple(citation.category_id for citation in result.category_citations)
         if len(cited_ids) != len(set(cited_ids)) or set(cited_ids) != selected:
             raise ValueError("category citations must exactly match payload categories")
+        window_ranges[result.payload.primary_category].extend(
+            segment.time_range for segment in window.segments
+        )
         for citation in result.category_citations:
             target = (
                 primary_ranges
@@ -251,7 +268,7 @@ def _role_ranges(
                 if index >= len(window.segments):
                     raise ValueError("citation index outside analysis window")
                 target[citation.category_id].append(window.segments[index].time_range)
-    return transcript_ranges, primary_ranges, secondary_ranges
+    return transcript_ranges, primary_ranges, secondary_ranges, window_ranges
 
 
 def evaluate_topic_policy_v3(
@@ -266,9 +283,36 @@ def evaluate_topic_policy_v3(
     In order: one dominant category; else the most specific shared parent whose
     descendants together dominate; else two or three co-equal major topics.
     """
-    transcript_ranges, primary_ranges, secondary_ranges = _role_ranges(
+    return _evaluate_topic_policy(
+        run, classifications, audio_seconds=audio_seconds, taxonomy=taxonomy, window_share=False,
+    )
+
+
+def evaluate_topic_policy_v4(
+    run: TranscriptionRun,
+    classifications: tuple[ClassificationResult, ...],
+    *,
+    audio_seconds: float,
+    taxonomy: Sequence[TaxonomyRow],
+) -> TopicDecision:
+    """v3's decision order, with shares measured on verified-window speech."""
+    return _evaluate_topic_policy(
+        run, classifications, audio_seconds=audio_seconds, taxonomy=taxonomy, window_share=True,
+    )
+
+
+def _evaluate_topic_policy(
+    run: TranscriptionRun,
+    classifications: tuple[ClassificationResult, ...],
+    *,
+    audio_seconds: float,
+    taxonomy: Sequence[TaxonomyRow],
+    window_share: bool,
+) -> TopicDecision:
+    transcript_ranges, primary_ranges, secondary_ranges, window_ranges = _role_ranges(
         run, classifications, audio_seconds=audio_seconds, skip_technical_failures=True,
     )
+    share_ranges = window_ranges if window_share else primary_ranges
     total = _duration(tuple(transcript_ranges))
     by_id = {row.id: row for row in taxonomy}
     if any(category_id not in by_id for category_id in (*primary_ranges, *secondary_ranges)):
@@ -287,36 +331,46 @@ def evaluate_topic_policy_v3(
     def redundant(first: str, second: str) -> bool:
         return first == second or first in ancestors(second) or second in ancestors(first)
 
-    def dominant(seconds: float) -> bool:
+    def dominant(share_seconds: float, cited_seconds: float) -> bool:
         return (
             total > 0
-            and seconds / total > PRIMARY_TRANSCRIPT_SHARE
-            and seconds / audio_seconds >= PRIMARY_AUDIO_SHARE
+            and share_seconds / total > PRIMARY_TRANSCRIPT_SHARE
+            and cited_seconds / audio_seconds >= PRIMARY_AUDIO_SHARE
         )
 
     primary_support = {cid: _duration(tuple(r)) for cid, r in primary_ranges.items()}
     secondary_support = {cid: _duration(tuple(r)) for cid, r in secondary_ranges.items()}
+    share_support = {cid: _duration(tuple(r)) for cid, r in share_ranges.items()}
 
     def by_support(support: dict[str, float]) -> list[str]:
         return sorted(support, key=lambda cid: (-support[cid], cid))
 
     structure: str | None = None
     selected: list[tuple[str, float]] = []
-    singles = [cid for cid in by_support(primary_support) if dominant(primary_support[cid])]
+    singles = [
+        cid for cid in by_support(primary_support)
+        if dominant(share_support[cid], primary_support[cid])
+    ]
     if singles:
         structure = "single"
         selected = [(singles[0], primary_support[singles[0]])]
     else:
         rollup: dict[str, list[TimeRange]] = defaultdict(list)
+        rollup_share: dict[str, list[TimeRange]] = defaultdict(list)
         for category_id, ranges in primary_ranges.items():
             for ancestor in ancestors(category_id):
                 rollup[ancestor].extend(ranges)
+                rollup_share[ancestor].extend(share_ranges[category_id])
         parent_support = {
             cid: _duration(tuple(ranges) + tuple(primary_ranges.get(cid, ())))
             for cid, ranges in rollup.items()
         }
+        parent_share = {
+            cid: _duration(tuple(ranges) + tuple(share_ranges.get(cid, ())))
+            for cid, ranges in rollup_share.items()
+        }
         parents = sorted(
-            (cid for cid, seconds in parent_support.items() if dominant(seconds)),
+            (cid for cid, seconds in parent_support.items() if dominant(parent_share[cid], seconds)),
             # Prefer the most specific parent, then the larger support.
             key=lambda cid: (-len(ancestors(cid)), -parent_support[cid], cid),
         )
@@ -326,13 +380,14 @@ def evaluate_topic_policy_v3(
         else:
             majors: list[str] = []
             for cid in by_support(primary_support):
-                if total > 0 and primary_support[cid] / total >= MULTI_TOPIC_MIN_SHARE and not any(
+                if total > 0 and share_support[cid] / total >= MULTI_TOPIC_MIN_SHARE and not any(
                     redundant(cid, chosen) for chosen in majors
                 ):
                     majors.append(cid)
             majors = majors[:3]
             combined = _duration(tuple(r for cid in majors for r in primary_ranges[cid]))
-            if len(majors) >= 2 and dominant(combined):
+            combined_share = _duration(tuple(r for cid in majors for r in share_ranges[cid]))
+            if len(majors) >= 2 and dominant(combined_share, combined):
                 structure = "multi_topic"
                 selected = [(cid, primary_support[cid]) for cid in majors]
 
@@ -350,7 +405,9 @@ def evaluate_topic_policy_v3(
                 selected.append((cid, combined_support[cid]))
 
     return TopicDecision(
-        policy_version="english-audio-aggregation-v3",
+        policy_version=(
+            "english-audio-aggregation-v4" if window_share else "english-audio-aggregation-v3"
+        ),
         outcome="eligible" if structure else "insufficient",
         primary_category=selected[0][0] if structure else None,
         transcript_seconds=total,
@@ -360,4 +417,7 @@ def evaluate_topic_policy_v3(
         topic_structure=structure,
         secondary_categories=tuple(cid for cid, _ in selected[1:]) if structure else (),
         selected_support_seconds=tuple(selected) if structure else (),
+        primary_window_support_seconds=(
+            tuple(sorted(share_support.items())) if window_share else ()
+        ),
     )

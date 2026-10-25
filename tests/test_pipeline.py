@@ -421,7 +421,8 @@ def test_fully_supported_audio_exports_v2_cattax_9(pipeline_fixture):
     assert saved.status is JobStage.COMPLETE
     assert saved.ortb_content["cattax"] == 9
     assert store.read_export(job_id) is not None
-    assert store.load_analysis_diagnostics(job_id)[-1]["payload"]["outcome"] == "eligible"
+    policy = store.load_analysis_diagnostics(job_id)[-1]["payload"]
+    assert (policy["outcome"], policy["policy_version"]) == ("eligible", "english-audio-aggregation-v4")
 
 
 def test_sentiment_reaches_the_ui_snapshot_but_not_the_export(pipeline_fixture):
@@ -549,14 +550,14 @@ def test_cancellation_before_policy_journal_keeps_partial_timeline(pipeline_fixt
 
     pipeline, store, job_id = pipeline_fixture()
     token = CancellationToken()
-    original = pipeline_module.evaluate_topic_policy_v3
+    original = pipeline_module.evaluate_topic_policy_v4
 
     def cancel_after_decision(*args, **kwargs):
         decision = original(*args, **kwargs)
         token.cancel()
         return decision
 
-    monkeypatch.setattr(pipeline_module, "evaluate_topic_policy_v3", cancel_after_decision)
+    monkeypatch.setattr(pipeline_module, "evaluate_topic_policy_v4", cancel_after_decision)
     pipeline.run(job_id, token)
 
     saved = store.load(job_id)

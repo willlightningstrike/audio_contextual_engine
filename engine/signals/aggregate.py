@@ -6,6 +6,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 
 from engine.signals.result_types import (
+    V3_FAMILY,
     AggregateResult,
     AggregateSentiment,
     CoverageSummary,
@@ -198,7 +199,7 @@ def aggregate_topic_sufficient(
         raise ValueError("v2 aggregation requires an eligible primary")
     base = aggregate(entries, coverage=coverage, taxonomy=taxonomy)
     by_id = {row.id: row for row in taxonomy}
-    if decision.policy_version == "english-audio-aggregation-v3":
+    if decision.policy_version in V3_FAMILY:
         # The v3 decision already chose and de-duplicated the categories.
         if any(category_id not in by_id for category_id, _ in decision.selected_support_seconds):
             raise ValueError("unknown taxonomy category in v3 decision")
@@ -210,7 +211,7 @@ def aggregate_topic_sufficient(
             secondary_role_support_seconds=decision.secondary_role_support_seconds,
             topic_structure=decision.topic_structure,
             selected_support_seconds=decision.selected_support_seconds,
-            policy_version="english-audio-aggregation-v3",
+            policy_version=decision.policy_version,
         )
         return AggregateResult.model_validate(values)
     if decision.primary_category not in by_id:
@@ -254,8 +255,8 @@ def aggregate_declared_music(
     These labels come from the user's content context, never from the audio.
     Any eligible transcript topics follow them while room remains.
     """
-    if decision.policy_version != "english-audio-aggregation-v3":
-        raise ValueError("declared music requires a v3 topic decision")
+    if decision.policy_version not in V3_FAMILY:
+        raise ValueError("declared music requires a v3 or v4 topic decision")
     declared = (MUSIC_ID, MUSIC_VIDEO_ID) if video else (MUSIC_ID,)
     by_id = {row.id: row for row in taxonomy}
     if any(category_id not in by_id for category_id in declared):
@@ -277,7 +278,7 @@ def aggregate_declared_music(
         entities=base.entities if base else (),
         sentiment=base.sentiment if base else None,
         coverage=coverage,
-        policy_version="english-audio-aggregation-v3",
+        policy_version=decision.policy_version,
         topic_structure="declared_music",
         selected_support_seconds=supported,
         declared_categories=declared,

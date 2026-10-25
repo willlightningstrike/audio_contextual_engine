@@ -7,7 +7,7 @@ import re
 from typing import Any
 
 from engine.domain import ContentContext, SourceMetadata
-from engine.signals.result_types import AggregateResult
+from engine.signals.result_types import V3_FAMILY, AggregateResult
 from engine.standards import CATTAX_CONTENT_3_1, load_taxonomy
 from engine.ortb.validate import validate_content
 
@@ -79,7 +79,7 @@ def build_content(
         {"id": "secondary_category", "value": category}
         for category in aggregate.secondary_categories
     )
-    if aggregate.policy_version == "english-audio-aggregation-v3":
+    if aggregate.policy_version in V3_FAMILY:
         # Consumers need to know when categories are co-equal or rolled up, and
         # when technically failed ranges were excluded from the decision.
         segments.extend([

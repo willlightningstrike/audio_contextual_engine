@@ -138,6 +138,10 @@ class AggregateSentiment(_StrictFrozenModel):
         return self
 
 
+# Policies that record a topic structure and selected support.
+V3_FAMILY = frozenset({"english-audio-aggregation-v3", "english-audio-aggregation-v4"})
+
+
 class AggregateResult(_StrictFrozenModel):
     primary_category: str = Field(min_length=1)
     secondary_categories: tuple[str, ...] = Field(max_length=2)
@@ -151,7 +155,7 @@ class AggregateResult(_StrictFrozenModel):
     coverage: CoverageSummary
     policy_version: Literal[
         "english-audio-aggregation-v1", "english-audio-aggregation-v2",
-        "english-audio-aggregation-v3",
+        "english-audio-aggregation-v3", "english-audio-aggregation-v4",
     ] = "english-audio-aggregation-v1"
     # v3 only: how the categories were chosen and the support each was given.
     topic_structure: Literal["single", "parent_rollup", "multi_topic", "declared_music"] | None = None
@@ -182,7 +186,7 @@ class AggregateResult(_StrictFrozenModel):
             raise ValueError("sentiment is required unless categories were declared")
         if not declared and not self.primary_role_support_seconds:
             raise ValueError("primary-role support is required")
-        if self.policy_version == "english-audio-aggregation-v3":
+        if self.policy_version in V3_FAMILY:
             if self.topic_structure is None:
                 raise ValueError("v3 results require a topic structure")
             if categories[:len(self.declared_categories)] != self.declared_categories:

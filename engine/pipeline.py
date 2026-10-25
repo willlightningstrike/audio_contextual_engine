@@ -24,7 +24,7 @@ from engine.signals.aggregate import aggregate_declared_music, aggregate_topic_s
 from engine.signals.classify import analysis_windows_from_run
 from engine.signals.verified_classification import classify_and_verify_transcription_run
 from engine.signals.topic_verify import VERIFIER_POLICY
-from engine.signals.topic_sufficiency import evaluate_topic_policy_v3
+from engine.signals.topic_sufficiency import evaluate_topic_policy_v4
 from engine.signals.protocol import ConstrainedTextGenerator, Embedder, VocalScreener
 from engine.signals.result_types import (
     AudioTranscriptProvenance,
@@ -319,7 +319,7 @@ class Pipeline:
                 raise CoverageFailure(assessment.error_code)
             token.raise_if_cancelled()
             taxonomy = load_taxonomy()
-            decision = evaluate_topic_policy_v3(
+            decision = evaluate_topic_policy_v4(
                 run, classifications, audio_seconds=media.duration_seconds, taxonomy=taxonomy
             )
             token.raise_if_cancelled()

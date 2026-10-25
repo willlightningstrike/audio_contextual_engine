@@ -65,15 +65,15 @@ Media file (path, upload, or folder)
   └─ Export .................. validated OpenRTB content JSON
 ```
 
-**Whole-file policy (`english-audio-aggregation-v3`):**
+**Whole-file policy (`english-audio-aggregation-v4` topics, v3 exclusions):**
 
 1. **Exclusions.** Music breaks and silence are excluded anywhere in the file. Non-English speech and ranges that failed processing are excluded as long as each stays at or below **20%**; beyond that, the job stops with an explanation.
-2. **Single topic.** A category wins if its verified evidence covers **more than 50%** of the usable speech and **at least 25%** of the audio.
+2. **Single topic.** A category wins if the windows where it is the verified topic hold **more than 50%** of the usable speech, and its cited evidence adds up to **at least 25%** of the audio.
 3. **Parent rollup.** Otherwise, the most specific broader category whose subtopics together pass those thresholds (for example *Sports* for a show covering baseball, basketball, and soccer).
-4. **Multi-topic.** Otherwise, two or three unrelated categories, each covering **at least 20%** of the speech, that together pass the thresholds.
+4. **Multi-topic.** Otherwise, two or three unrelated categories, each holding **at least 20%** of the speech in their verified windows, that together pass the thresholds.
 5. **Otherwise** the job ends with *not enough topical evidence*, and no label is forced.
 
-These thresholds are policy rules, not confidence scores.
+These thresholds are policy rules, not confidence scores. Version 4 measures the share of speech by verified window rather than by cited lines only: under v3 a watch review with the same verified topic in 5 of 6 windows was rejected because only 44% of its speech was cited.
 
 ## Project structure
 
@@ -281,9 +281,9 @@ Each `topic_structure` value changes how to read `cat`:
 
 | `topic_structure` | How the categories were chosen | How to read `cat` |
 | --- | --- | --- |
-| `single` | One category's cited speech covers more than half of the transcript time and at least a quarter of the audio. | `cat[0]` is the main topic. Any secondaries are smaller verified topics, none a parent or child of an earlier category. |
-| `parent_rollup` | No single category dominates, but related subcategories together pass the same thresholds. | `cat[0]` is their most specific shared parent, broader than any one subtopic. Secondaries are read as for `single`. |
-| `multi_topic` | Two or three topics, none an ancestor of another, each cover at least 20% of the transcript time and together pass the `single` thresholds. | The listed categories are co-equal. They are ordered by support only, so `cat[0]` is not the main topic. |
+| `single` | The windows whose verified topic is this category hold more than half of the speech, and its cited lines add up to at least a quarter of the audio. | `cat[0]` is the main topic. Any secondaries are smaller verified topics, none a parent or child of an earlier category. |
+| `parent_rollup` | No single category passes, but related subcategories together pass the same two tests. | `cat[0]` is their most specific shared parent, broader than any one subtopic. Secondaries are read as for `single`. |
+| `multi_topic` | Two or three topics, none an ancestor of another, each hold at least 20% of the speech in their verified windows and together pass the `single` tests. | The listed categories are co-equal. They are ordered by support only, so `cat[0]` is not the main topic. |
 | `declared_music` | The content context was set to Music. | `cat[0]` is Music (338), followed by Music Video (650) for video files. Both were declared by you, not detected. Any further category was verified from the transcript. |
 
 Keyword and entity values are model outputs, not calibrated probabilities. Only the categories are independently verified. Sentiment is also unverified, so it is shown in the app but left out of the export.
