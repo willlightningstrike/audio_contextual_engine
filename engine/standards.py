@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 import csv
 from dataclasses import dataclass
 from functools import lru_cache
@@ -27,6 +28,23 @@ class TaxonomyRow:
     tier: int
     parent_id: str | None
     path: tuple[str, ...]
+
+
+def path_ancestors(taxonomy: Sequence[TaxonomyRow]) -> dict[str, tuple[str, ...]]:
+    """Each category's ancestor IDs, nearest first, read from its tier path.
+
+    Paths are authoritative, as in per-window classification: two 3.1 rows
+    (Horse Racing, Public Radio) carry a parent_id that skips their path parent.
+    """
+    by_path = {row.path: row.id for row in taxonomy}
+    return {
+        row.id: tuple(
+            by_path[row.path[:length]]
+            for length in range(len(row.path) - 1, 0, -1)
+            if row.path[:length] in by_path
+        )
+        for row in taxonomy
+    }
 
 
 @lru_cache(maxsize=1)

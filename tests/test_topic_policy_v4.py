@@ -110,3 +110,14 @@ def test_unrelated_majors_use_window_share():
 def test_v3_decisions_do_not_serialize_the_v4_field():
     decision = decide([(WATCHES, 9)] * 2, evaluate_topic_policy_v3)
     assert "primary_window_support_seconds" not in decision.model_dump(mode="json")
+
+
+def test_path_hierarchy_keeps_a_parent_and_its_child_out_of_one_result():
+    # Regression: Horse Racing's parent_id skips Equine Sports, so
+    # aggregation published Equine Sports + Horse Racing together.
+    from engine.standards import path_ancestors
+
+    assert path_ancestors(load_taxonomy())["497"] == ("496", SPORTS)
+    decision = decide([("496", 9), ("496", 9), ("497", 9)])
+    assert decision.primary_category == "496"
+    assert "497" not in decision.secondary_categories

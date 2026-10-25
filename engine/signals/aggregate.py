@@ -16,7 +16,7 @@ from engine.signals.result_types import (
     _duration,
 )
 from engine.signals.topic_sufficiency import TopicDecision
-from engine.standards import TaxonomyRow
+from engine.standards import TaxonomyRow, path_ancestors
 
 
 def _unit_key(entry: TextTimelineEntry) -> tuple[float, float]:
@@ -27,16 +27,8 @@ def _overlaps(first, second) -> bool:
     return first.start_seconds < second.end_seconds and second.start_seconds < first.end_seconds
 
 
-def _ancestors(category_id: str, by_id: dict[str, TaxonomyRow]) -> set[str]:
-    ancestors: set[str] = set()
-    current = by_id.get(category_id)
-    while current is not None and current.parent_id is not None:
-        parent_id = current.parent_id
-        if parent_id in ancestors:
-            raise ValueError("taxonomy contains a parent cycle")
-        ancestors.add(parent_id)
-        current = by_id.get(parent_id)
-    return ancestors
+def _ancestors(taxonomy: Sequence[TaxonomyRow]) -> dict[str, set[str]]:
+    return {category_id: set(ids) for category_id, ids in path_ancestors(taxonomy).items()}
 
 
 def _redundant(first: str, second: str, ancestors: dict[str, set[str]]) -> bool:
@@ -57,7 +49,7 @@ def aggregate(
     by_id = {row.id: row for row in taxonomy}
     if len(by_id) != len(taxonomy) or any(not isinstance(row.id, str) or not row.id for row in taxonomy):
         raise ValueError("taxonomy IDs must be unique non-empty strings")
-    ancestors = {category_id: _ancestors(category_id, by_id) for category_id in by_id}
+    ancestors = _ancestors(taxonomy)
 
     ordered = tuple(sorted(entries, key=_unit_key))
     previous_end = -1.0
@@ -216,7 +208,7 @@ def aggregate_topic_sufficient(
         return AggregateResult.model_validate(values)
     if decision.primary_category not in by_id:
         raise ValueError("unknown taxonomy primary category")
-    ancestors = {category_id: _ancestors(category_id, by_id) for category_id in by_id}
+    ancestors = _ancestors(taxonomy)
     selected = [decision.primary_category]
     for category_id, seconds in sorted(
         decision.secondary_role_support_seconds, key=lambda item: (-item[1], item[0])
@@ -261,7 +253,7 @@ def aggregate_declared_music(
     by_id = {row.id: row for row in taxonomy}
     if any(category_id not in by_id for category_id in declared):
         raise ValueError("declared music categories are missing from the taxonomy")
-    ancestors = {category_id: _ancestors(category_id, by_id) for category_id in by_id}
+    ancestors = _ancestors(taxonomy)
     # A rolled-up parent such as Entertainment would only restate Music.
     supported = tuple(
         (category_id, seconds) for category_id, seconds in decision.selected_support_seconds

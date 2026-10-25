@@ -13,7 +13,7 @@ from engine.domain import TimeRange
 from engine.signals.classify import analysis_windows_from_run
 from engine.signals.result_types import _duration
 from engine.signals.text_types import ClassificationResult
-from engine.standards import TaxonomyRow
+from engine.standards import TaxonomyRow, path_ancestors
 from engine.transcribe.types import TranscriptionRun
 
 
@@ -318,15 +318,10 @@ def _evaluate_topic_policy(
     if any(category_id not in by_id for category_id in (*primary_ranges, *secondary_ranges)):
         raise ValueError("unknown taxonomy category in cited support")
 
+    lineage = path_ancestors(taxonomy)
+
     def ancestors(category_id: str) -> tuple[str, ...]:
-        chain: list[str] = []
-        parent = by_id[category_id].parent_id
-        while parent is not None:
-            if parent in chain:
-                raise ValueError("taxonomy contains a parent cycle")
-            chain.append(parent)
-            parent = by_id[parent].parent_id
-        return tuple(chain)
+        return lineage[category_id]
 
     def redundant(first: str, second: str) -> bool:
         return first == second or first in ancestors(second) or second in ancestors(first)
