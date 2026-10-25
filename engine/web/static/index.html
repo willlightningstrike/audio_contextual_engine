@@ -85,14 +85,15 @@
                   <select id="audio-stream" disabled>
                     <option value="">Check the source first</option>
                   </select>
-                  <label class="field-label context-label" for="content-context">Content context <span>optional</span></label>
-                  <select id="content-context">
+                  <label class="field-label context-label" for="content-context">Content context <span>required for music</span></label>
+                  <select id="content-context" aria-describedby="content-context-help">
                     <option value="">Automatic</option>
                     <option value="1">Video program</option>
                     <option value="3">Music</option>
                     <option value="6">Spoken audio</option>
                     <option value="7">Unknown</option>
                   </select>
+                  <p id="content-context-help" class="field-help">For a song or music video, choose Music. Music is never detected from the audio, so on Automatic these usually end with no topic. Other files can stay on Automatic.</p>
                 </div>
 
                 <p id="scope-notice" class="scope-notice">
