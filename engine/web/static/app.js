@@ -112,16 +112,21 @@ function showProbe(probe, source) {
   state.prepared = source;
 }
 
+function stageUpload() {
+  const file = byId("source-file").files[0];
+  if (!file) throw new Error("Choose an audio or video file first.");
+  return jsonRequest(`/api/uploads?filename=${encodeURIComponent(file.name)}`, {
+    method: "POST",
+    body: file,
+  });
+}
+
 async function inspectSource() {
   const selection = state.selectionGeneration;
   const run = state.runGeneration;
   if (state.mode === "upload") {
     const file = byId("source-file").files[0];
-    if (!file) throw new Error("Choose an audio or video file first.");
-    const result = await jsonRequest(`/api/uploads?filename=${encodeURIComponent(file.name)}`, {
-      method: "POST",
-      body: file,
-    });
+    const result = await stageUpload();
     if (selection !== state.selectionGeneration || run !== state.runGeneration) return;
     showProbe(result.probe, { mode: "upload", uploadId: result.upload_id, path: null });
     byId("progress-status").textContent = `${file.name} is ready. Choose an audio track, then start analysis.`;
@@ -146,9 +151,13 @@ async function createJob() {
   const context = contextValue();
   let snapshot;
   if (state.prepared.mode === "upload") {
-    const payload = { upload_id: state.prepared.uploadId, audio_stream_index: audioStream };
+    const prepared = state.prepared;
+    // An upload ID is claimed by its job, so a retry stages the selected file again.
+    if (!prepared.uploadId) prepared.uploadId = (await stageUpload()).upload_id;
+    const payload = { upload_id: prepared.uploadId, audio_stream_index: audioStream };
     if (context !== null) payload.requested_context = context;
     snapshot = await jsonRequest("/api/jobs/upload", jsonOptions(payload));
+    prepared.uploadId = null;
   } else {
     const payload = { path: state.prepared.path, audio_stream_index: audioStream };
     if (context !== null) payload.requested_context = context;

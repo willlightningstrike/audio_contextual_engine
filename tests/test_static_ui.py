@@ -896,3 +896,34 @@ def test_declared_music_result_says_the_label_was_not_detected() -> None:
     rendered = json.loads(result.stdout)["complete"]
     assert "Declared: Music comes from the Music content context you chose" in rendered["summary"]
     assert rendered["sentiment"] == "positiveSigned score 0.8"
+
+
+def test_upload_retry_stages_the_file_again_instead_of_reusing_a_claimed_id() -> None:
+    # Regression: after "not enough topical evidence", choosing Music and
+    # starting again sent the already-claimed upload ID.
+    rendered = _run_async_ui(r"""
+const posts = [];
+let uploads = 0;
+context.fetch = async (url, options) => {
+  if (url.startsWith('/api/uploads')) {
+    uploads += 1;
+    return response({upload_id: 'upload-' + uploads,
+      probe: {audio_streams: [{index: 0, codec_name: 'aac'}], selected_audio_stream: 0}});
+  }
+  posts.push({url, body: JSON.parse(options.body)});
+  return response(job('job-' + posts.length));
+};
+call('showMode', 'upload');
+get('source-file').files = [{name: 'song.mp4'}];
+get('content-context').value = '';
+await call('handleSubmit', {preventDefault() {}});
+get('audio-stream').value = '0';
+await call('handleSubmit', {preventDefault() {}});
+get('content-context').value = '3';
+await call('handleSubmit', {preventDefault() {}});
+process.stdout.write(JSON.stringify({posts, uploads, error: get('form-error').textContent}));
+""")
+    first, retry = rendered["posts"]
+    assert first["body"]["upload_id"] == "upload-1"
+    assert retry["body"] == {"upload_id": "upload-2", "audio_stream_index": 0, "requested_context": 3}
+    assert rendered["uploads"] == 2 and rendered["error"] == ""
