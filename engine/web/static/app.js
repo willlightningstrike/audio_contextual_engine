@@ -219,6 +219,10 @@ function beginRun(snapshot, kind) {
   updateTaxonomyNotice();
   byId("summary-content").replaceChildren(node("p", "empty-result", "A whole-file result will appear when analysis is complete."));
   byId("timeline-content").replaceChildren(node("p", "muted", "Time-coded evidence will appear as windows finish."));
+  if (kind === "batch") {
+    // A folder run shows per-clip outcomes only; reset the last file's panels.
+    for (const render of [renderSummary, renderDetails, renderTimeline, renderVerification]) render({});
+  }
   renderSnapshot(snapshot, true);
   if (kind === "job") connectEvents();
   else startBatchPolling();

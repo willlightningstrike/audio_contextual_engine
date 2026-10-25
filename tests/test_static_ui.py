@@ -927,3 +927,28 @@ process.stdout.write(JSON.stringify({posts, uploads, error: get('form-error').te
     assert first["body"]["upload_id"] == "upload-1"
     assert retry["body"] == {"upload_id": "upload-2", "audio_stream_index": 0, "requested_context": 3}
     assert rendered["uploads"] == 2 and rendered["error"] == ""
+
+
+def test_starting_a_batch_clears_the_previous_files_results() -> None:
+    # Regression: a folder run kept showing the last single file's
+    # context, keywords, entities, sentiment, transcript and verification rows.
+    rendered = _run_async_ui(r"""
+const segment = (id, value) => ({id, value});
+call('beginRun', {...job('old-job', 5, 'complete', '633'),
+  ortb_content: {cat: ['633'], context: 6, kwarray: ['old-keyword'], data: [{name: 'contextual_engine',
+    segment: [segment('entity_person', 'Old Person'), segment('primary_category', '633')]}]},
+  sentiment: {label: 'positive', score: 0.5},
+  transcript: [{time_range: {start_seconds: 0, end_seconds: 2}, text: 'Old unrelated transcript.'}],
+  verification_windows: [{time_range: {start_seconds: 0, end_seconds: 2}, status: 'supported',
+    verification_policy_version: 'old-policy', citations: []}]}, 'job');
+call('beginRun', batch('new-folder'), 'batch');
+const text = id => get(id).textContent;
+process.stdout.write(JSON.stringify({context: text('context-label'), keywords: text('keywords-content'),
+  entities: text('entities-content'), sentiment: text('sentiment-content'),
+  transcript: text('transcript-content'), transcriptHidden: get('transcript-details').hidden,
+  verification: text('verification-content')}));
+""")
+    joined = " ".join(str(value) for value in rendered.values())
+    for stale in ("Spoken audio", "old-keyword", "Old Person", "positive", "Old unrelated transcript", "old-policy"):
+        assert stale not in joined
+    assert rendered["transcriptHidden"] is True
