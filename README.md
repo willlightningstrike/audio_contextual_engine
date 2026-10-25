@@ -58,12 +58,14 @@ Media file (path, upload, or folder)
   ├─ ffprobe / ffmpeg ........ pick and normalise one audio track
   ├─ YAMNet (MLX) ............ is there speech or singing? (per 30 s window)
   ├─ Whisper (MLX) ........... detect language; transcribe English with timestamps
-  ├─ Qwen3 Embedding (MLX) ... shortlist the 15 most relevant IAB categories
+  ├─ Qwen3 Embedding (MLX) ... rank 50 IAB categories; the classifier sees the top 15
   ├─ Qwen3.6-35B-A3B (MLX) ... classify each ~90 s transcript window
   ├─ Qwen3.6 verifier ........ confirm each category against cited transcript lines
   ├─ Whole-file policy ....... exclude out-of-scope ranges, choose the final topics
   └─ Export .................. validated OpenRTB content JSON
 ```
+
+**Window sizes.** Audio is screened and transcribed in fixed **30-second** pieces. Whole transcript lines from neighbouring successful pieces are then grouped into analysis windows spanning **up to 90 seconds**. A failed, music or non-English piece ends the group, so a window can be shorter and start at an uneven time. Each analysis window is classified and verified on its own (up to five verifier calls) and is one row of the timeline; the whole-file policy then combines the windows.
 
 **Whole-file policy (`english-audio-aggregation-v4` topics, v3 exclusions):**
 
