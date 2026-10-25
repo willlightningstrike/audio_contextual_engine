@@ -142,19 +142,22 @@ class AggregateResult(_StrictFrozenModel):
     primary_category: str = Field(min_length=1)
     secondary_categories: tuple[str, ...] = Field(max_length=2)
     # Auditable role-specific support durations, not confidence or calibrated truth.
-    primary_role_support_seconds: tuple[tuple[str, float], ...] = Field(min_length=1)
+    primary_role_support_seconds: tuple[tuple[str, float], ...]
     secondary_role_support_seconds: tuple[tuple[str, float], ...] = ()
     keywords: tuple[KeywordAggregate, ...] = Field(max_length=20)
     entities: tuple[EntityAggregate, ...] = Field(max_length=50)
-    sentiment: AggregateSentiment
+    # None only for a declared result with no verified transcript window.
+    sentiment: AggregateSentiment | None
     coverage: CoverageSummary
     policy_version: Literal[
         "english-audio-aggregation-v1", "english-audio-aggregation-v2",
         "english-audio-aggregation-v3",
     ] = "english-audio-aggregation-v1"
     # v3 only: how the categories were chosen and the support each was given.
-    topic_structure: Literal["single", "parent_rollup", "multi_topic"] | None = None
+    topic_structure: Literal["single", "parent_rollup", "multi_topic", "declared_music"] | None = None
     selected_support_seconds: tuple[tuple[str, float], ...] = ()
+    # declared_music only: user-declared categories, which lead and have no support.
+    declared_categories: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def _category_roles_and_support_are_valid(self) -> AggregateResult:
@@ -172,10 +175,20 @@ class AggregateResult(_StrictFrozenModel):
                 raise ValueError(f"{label} support IDs must be unique non-blank strings")
             if any(not value > 0 for _, value in values):
                 raise ValueError(f"{label} support durations must be positive")
+        declared = self.topic_structure == "declared_music"
+        if declared != bool(self.declared_categories):
+            raise ValueError("only declared_music results record declared categories")
+        if self.sentiment is None and not declared:
+            raise ValueError("sentiment is required unless categories were declared")
+        if not declared and not self.primary_role_support_seconds:
+            raise ValueError("primary-role support is required")
         if self.policy_version == "english-audio-aggregation-v3":
             if self.topic_structure is None:
                 raise ValueError("v3 results require a topic structure")
-            if tuple(item[0] for item in self.selected_support_seconds) != categories:
+            if categories[:len(self.declared_categories)] != self.declared_categories:
+                raise ValueError("declared categories must lead the category list")
+            supported = categories[len(self.declared_categories):]
+            if tuple(item[0] for item in self.selected_support_seconds) != supported:
                 raise ValueError("selected support must list the chosen categories in order")
             if any(not value > 0 for _, value in self.selected_support_seconds):
                 raise ValueError("selected support durations must be positive")

@@ -20,7 +20,7 @@ from engine.events import Progress
 from engine.ingest.audio import prepare_audio
 from engine.lifecycle import JobStage
 from engine.ortb.build import build_content
-from engine.signals.aggregate import aggregate_topic_sufficient
+from engine.signals.aggregate import aggregate_declared_music, aggregate_topic_sufficient
 from engine.signals.classify import analysis_windows_from_run
 from engine.signals.verified_classification import classify_and_verify_transcription_run
 from engine.signals.topic_verify import VERIFIER_POLICY
@@ -325,13 +325,21 @@ class Pipeline:
             token.raise_if_cancelled()
             diagnostic("topic_policy", decision.model_dump(mode="json"))
             token.raise_if_cancelled()
-            if decision.outcome == "insufficient":
+            # Only an explicit user choice resolves to Music; it is never inferred.
+            declared_music = context is ContentContext.MUSIC
+            if decision.outcome == "insufficient" and not declared_music:
                 raise InsufficientTopicEvidence()
             token.raise_if_cancelled()
             coverage = self._coverage(assessment, decision)
-            result = aggregate_topic_sufficient(
-                entries, decision=decision, coverage=coverage, taxonomy=taxonomy
-            )
+            if declared_music:
+                result = aggregate_declared_music(
+                    entries, decision=decision, coverage=coverage, taxonomy=taxonomy,
+                    video=media.container_kind is ContainerKind.VIDEO,
+                )
+            else:
+                result = aggregate_topic_sufficient(
+                    entries, decision=decision, coverage=coverage, taxonomy=taxonomy
+                )
             token.raise_if_cancelled()
             record = self._advance(
                 self.store.load(job_id),

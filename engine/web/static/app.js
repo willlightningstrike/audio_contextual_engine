@@ -353,7 +353,7 @@ function updateTerminal(snapshot) {
   } else if (snapshot.status === "cancelled") {
     byId("job-status").textContent = "Cancelled. Partial evidence is shown below; export is unavailable.";
   } else if (snapshot.status === "failed" && snapshot.error === "INSUFFICIENT_TOPIC_EVIDENCE") {
-    byId("job-status").textContent = "Not enough topical evidence in the audio";
+    byId("job-status").textContent = "Not enough topical evidence in the audio. Songs and music videos usually end here, because music is not detected from audio; set Content context to Music to label them.";
   } else if (snapshot.status === "failed" && coverageFailures[snapshot.error]) {
     byId("job-status").textContent = `${coverageFailures[snapshot.error]} Saved partial evidence is shown below; export is unavailable.`;
   } else if (snapshot.status === "failed") {
@@ -407,6 +407,8 @@ function renderSummary(snapshot) {
     container.append(node("p", "category-note", "Multi-topic: the listed topics are co-equal; none covers most of the speech on its own."));
   } else if (segments.topic_structure === "parent_rollup") {
     container.append(node("p", "category-note", "Broader topic: several related subtopics together cover most of the speech."));
+  } else if (segments.topic_structure === "declared_music") {
+    container.append(node("p", "category-note", "Declared: Music comes from the Music content context you chose, not from the audio. Any other topic listed was verified from the transcript."));
   }
   if (segments.coverage === "partial_technical_failures") {
     container.append(node("p", "category-note", "Partial coverage: some speech failed processing and was left out of this result. See Coverage below."));

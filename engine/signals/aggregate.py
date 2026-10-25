@@ -228,3 +228,50 @@ def aggregate_topic_sufficient(
         policy_version="english-audio-aggregation-v2",
     )
     return AggregateResult.model_validate(values)
+
+
+MUSIC_ID = "338"
+MUSIC_VIDEO_ID = "650"
+
+
+def aggregate_declared_music(
+    entries: tuple[TextTimelineEntry, ...],
+    *,
+    decision: TopicDecision,
+    coverage: CoverageSummary,
+    taxonomy: Sequence[TaxonomyRow],
+    video: bool,
+) -> AggregateResult:
+    """Lead with the user-declared Music (and Music Video) labels.
+
+    These labels come from the user's content context, never from the audio.
+    Any eligible transcript topics follow them while room remains.
+    """
+    if decision.policy_version != "english-audio-aggregation-v3":
+        raise ValueError("declared music requires a v3 topic decision")
+    declared = (MUSIC_ID, MUSIC_VIDEO_ID) if video else (MUSIC_ID,)
+    by_id = {row.id: row for row in taxonomy}
+    if any(category_id not in by_id for category_id in declared):
+        raise ValueError("declared music categories are missing from the taxonomy")
+    ancestors = {category_id: _ancestors(category_id, by_id) for category_id in by_id}
+    # A rolled-up parent such as Entertainment would only restate Music.
+    supported = tuple(
+        (category_id, seconds) for category_id, seconds in decision.selected_support_seconds
+        if not any(_redundant(category_id, used, ancestors) for used in declared)
+    )[:3 - len(declared)] if decision.outcome == "eligible" else ()
+    base = aggregate(entries, coverage=coverage, taxonomy=taxonomy) if entries else None
+    categories = (*declared, *(category_id for category_id, _ in supported))
+    return AggregateResult(
+        primary_category=categories[0],
+        secondary_categories=categories[1:],
+        primary_role_support_seconds=decision.primary_role_support_seconds,
+        secondary_role_support_seconds=decision.secondary_role_support_seconds,
+        keywords=base.keywords if base else (),
+        entities=base.entities if base else (),
+        sentiment=base.sentiment if base else None,
+        coverage=coverage,
+        policy_version="english-audio-aggregation-v3",
+        topic_structure="declared_music",
+        selected_support_seconds=supported,
+        declared_categories=declared,
+    )

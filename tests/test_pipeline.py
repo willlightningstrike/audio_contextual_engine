@@ -192,7 +192,8 @@ def pipeline_fixture(tmp_path, monkeypatch):
     from engine.transcribe.types import TranscriptionRun, WindowResult
 
     def make(*, audio_seconds=30, transcript_segments=((0, 3, "camera review"),),
-             model_outputs=None, windows=None):
+             model_outputs=None, windows=None, requested_context=None,
+             container_kind=ContainerKind.AUDIO):
         source = tmp_path / f"source-{len(list(tmp_path.glob('source-*')))}.wav"
         with wave.open(str(source), "wb") as audio:
             audio.setnchannels(1)
@@ -201,7 +202,7 @@ def pipeline_fixture(tmp_path, monkeypatch):
             audio.writeframes(b"")
         media = PreparedMedia(
             source_path=source, audio_path=source,
-            container_kind=ContainerKind.AUDIO,
+            container_kind=container_kind,
             content_context_hint=ContentContext.UNKNOWN,
             selected_audio_stream=0,
             available_audio_streams=(AudioStream(index=0, codec_name="pcm_s16le"),),
@@ -227,7 +228,7 @@ def pipeline_fixture(tmp_path, monkeypatch):
         monkeypatch.setattr(pipeline_module, "prepare_audio", lambda *_args, **_kwargs: media)
         monkeypatch.setattr(pipeline_module, "transcribe_media", transcribe)
         store = JobStore(tmp_path / "jobs")
-        job = store.create(JobRequest(source=source))
+        job = store.create(JobRequest(source=source, requested_context=requested_context))
         outputs = model_outputs if model_outputs is not None else (
             {"primary_category": "633"}, _category_output(),
         )
@@ -437,6 +438,51 @@ def test_all_abstain_fails_with_semantic_policy(pipeline_fixture):
     assert saved.error == "INSUFFICIENT_TOPIC_EVIDENCE"
     assert saved.text_timeline == ()
     assert store.load_analysis_diagnostics(job_id)[-1]["payload"]["outcome"] == "insufficient"
+
+
+def _segments(content):
+    return {item["id"]: item["value"] for item in content["data"][0]["segment"]}
+
+
+def test_declared_music_publishes_music_when_every_window_abstains(pipeline_fixture):
+    pipeline, store, job_id = pipeline_fixture(
+        model_outputs=({"primary_category": "__INSUFFICIENT_TOPIC_EVIDENCE__"},),
+        requested_context=ContentContext.MUSIC,
+    )
+    pipeline.models.text_generator.verifier_outputs = iter([
+        {"status": "unsupported", "category_id": category, "segment_indices": []}
+        for category in ("633", "255")])
+    pipeline.run(job_id, CancellationToken())
+
+    saved = store.load(job_id)
+    assert saved.status is JobStage.COMPLETE
+    assert list(saved.ortb_content["cat"]) == ["338"] and saved.ortb_content["context"] == 3
+    segments = _segments(saved.ortb_content)
+    assert segments["topic_structure"] == "declared_music"
+    assert "sentiment" not in segments and "kwarray" not in saved.ortb_content
+    assert store.load_analysis_diagnostics(job_id)[-1]["payload"]["outcome"] == "insufficient"
+
+
+def test_declared_music_video_adds_music_video_and_keeps_transcript_signals(pipeline_fixture):
+    pipeline, store, job_id = pipeline_fixture(
+        requested_context=ContentContext.MUSIC, container_kind=ContainerKind.VIDEO,
+    )
+    pipeline.run(job_id, CancellationToken())
+
+    saved = store.load(job_id)
+    assert saved.status is JobStage.COMPLETE
+    assert list(saved.ortb_content["cat"]) == ["338", "650"]
+    assert _segments(saved.ortb_content)["sentiment"] == "neutral:0.0"
+
+
+def test_declared_music_keeps_a_verified_transcript_topic_as_secondary(pipeline_fixture):
+    pipeline, store, job_id = pipeline_fixture(
+        audio_seconds=10, transcript_segments=((0, 8, "camera review"),),
+        requested_context=ContentContext.MUSIC,
+    )
+    pipeline.run(job_id, CancellationToken())
+
+    assert list(store.load(job_id).ortb_content["cat"]) == ["338", "633"]
 
 
 def test_hour_long_sparse_topical_audio_never_promotes(pipeline_fixture):

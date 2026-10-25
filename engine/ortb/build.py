@@ -74,12 +74,12 @@ def build_content(
     keywords = list(dict.fromkeys(item.term for item in aggregate.keywords))
     if keywords:
         content["kwarray"] = keywords
-    segments = [
-        {
+    segments = []
+    if aggregate.sentiment is not None:
+        segments.append({
             "id": "sentiment",
             "value": f"{aggregate.sentiment.label}:{_score_text(aggregate.sentiment.score)}",
-        }
-    ]
+        })
     segments.extend(
         {"id": _entity_segment_id(entity.type), "value": entity.text}
         for entity in aggregate.entities

@@ -230,7 +230,7 @@ Leave the Terminal window open. Startup verifies the model files and loads the i
 - **Upload a file:** pick a file up to 1 GiB.
 - **Analyze a folder:** paste a folder path. Each supported file directly inside it becomes its own job.
 
-**4. Click "Check audio track"**, then pick the English audio track if the file has more than one. Leave **Content context** on *Automatic* unless you need to override the OpenRTB context value.
+**4. Click "Check audio track"**, then pick the English audio track if the file has more than one. Leave **Content context** on *Automatic* unless you need to override the OpenRTB context value. For a song or music video, choose *Music* (see [Limitations](#limitations)).
 
 **5. Click "Start analysis".** Progress shows the current stage, the audio window being processed, and verification results as they are saved. You can **Cancel** at any time; the current step finishes first.
 
@@ -275,9 +275,9 @@ A successful job exports an [OpenRTB 2.6](https://iabtechlab.com/standards/openr
 | Segment | Meaning |
 | --- | --- |
 | `primary_category`, `secondary_category` | Category roles, in the same order as `cat` |
-| `topic_structure` | `single`, `parent_rollup` (broader parent topic), or `multi_topic` (co-equal topics) |
+| `topic_structure` | `single`, `parent_rollup` (broader parent topic), `multi_topic` (co-equal topics), or `declared_music` (Music chosen as the content context) |
 | `coverage` | `complete`, or `partial_technical_failures` if some ranges failed and were left out |
-| `sentiment` | `label:score`, with the score from −1 to 1 |
+| `sentiment` | `label:score`, with the score from −1 to 1. Omitted from a `declared_music` result with no verified transcript evidence |
 | `entity_<type>` | Named entities found in the transcript |
 
 Keyword, entity, and sentiment values are model outputs, not calibrated probabilities. Only the categories are independently verified.
@@ -311,6 +311,7 @@ curl -s -X POST http://127.0.0.1:8765/api/jobs/path \
 
 - **English only.** Files where more than 20% of the speech is not English are out of scope.
 - **Transcript only.** No video-frame analysis, and no music genre or mood. A file with little speech usually gets no label.
+- **Music and music videos.** Music (338), its genres and Music Video (650) are never inferred from the audio: a transcript cannot show genre, and lyrics rarely support a real topic. Songs therefore usually end with "not enough topical evidence". To label one, set **Content context** to *Music* (`requested_context: 3`). The result then leads with Music, adds Music Video for video files, and keeps any verified transcript topic as a secondary. This label is declared by you, not detected. Instrumental tracks and non-English songs still fail the vocal and language checks.
 - **Often returns no label.** If a file has little speech, mixed topics, or speech the verifier can't confirm, the engine reports "not enough topical evidence" rather than guessing. This is expected behaviour, not an error.
 - **Shared model for checking.** The same Qwen3.6 model proposes and verifies categories, so they can make the same mistake. Known errors in testing include coffee-brewing clips labelled *Cooking* instead of *Non-Alcoholic Beverages*.
 - **Heavy and slow.** It needs a 64 GB Apple Silicon Mac. The median was about 67 seconds per labelled file in the 308-file test with the earlier Qwen2.5 model; long programmes can take over an hour.

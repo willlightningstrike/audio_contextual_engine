@@ -247,7 +247,8 @@ def test_insufficient_topic_snapshot_renders_partial_evidence_and_reconnects_wit
     )
     rendered = json.loads(result.stdout)
     for view in (rendered["first"], rendered["reconnect"]):
-        assert view["status"] == "Not enough topical evidence in the audio"
+        assert view["status"].startswith("Not enough topical evidence in the audio.")
+        assert "set Content context to Music" in view["status"]
         assert len(view["timeline"]) == 2
         assert view["timeline"][0]["text"] == "0:00–0:04No supported IAB topic"
         assert view["timeline"][0]["headings"] == []
@@ -868,3 +869,26 @@ def test_v3_result_explains_structure_partial_coverage_and_cap_failures() -> Non
     assert "Partial coverage: some speech failed processing" in rendered["complete"]["summary"]
     assert "not confirmed as English" in rendered["complete"]["excluded"]
     assert rendered["failedStatus"].startswith("More than 20% of the English speech failed processing")
+
+
+def test_declared_music_result_says_the_label_was_not_detected() -> None:
+    if not shutil.which("node"):
+        pytest.skip("Node.js is required for the browser-script DOM contract")
+    snapshot = {
+        "id": "saved-job", "status": "complete", "error": None,
+        "progress": {"revision": 8, "stage": "complete", "percent": 100, "message": "Saved"},
+        "ortb_content": {"cat": ["338", "650"], "context": 3, "data": [{
+            "name": "contextual_engine",
+            "segment": [{"id": "topic_structure", "value": "declared_music"}],
+        }]},
+        "text_timeline": [], "topic_abstentions": [], "transcript": [],
+        "coverage": {
+            "total_windows": 1, "successful_windows": 1, "transcribed_seconds": 10.0,
+            "classified_units": 0, "failed_ranges": [], "abstained_ranges": [], "excluded_ranges": [],
+        },
+    }
+    result = subprocess.run(
+        ["node", "-e", _V3_SCRIPT, str(STATIC / "app.js"), json.dumps(snapshot)],
+        capture_output=True, text=True, check=True,
+    )
+    assert "Declared: Music comes from the Music content context you chose" in json.loads(result.stdout)["complete"]["summary"]
